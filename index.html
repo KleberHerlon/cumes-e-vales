@@ -29,6 +29,13 @@
     .cv-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 9999px; transition: all .2s; }
     .cv-switch input:checked + .cv-track { background: #6366f1; }
     .cv-switch input:checked + .cv-track .cv-thumb { left: 18px; }
+    details.cv-acc { border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(15,23,42,0.45); overflow: hidden; }
+    details.cv-acc summary { cursor: pointer; padding: 8px 10px; font-size: 11px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; list-style: none; user-select: none; }
+    details.cv-acc summary::-webkit-details-marker { display: none; }
+    details.cv-acc summary .cv-chev { transition: transform .15s ease; color: #64748b; }
+    details.cv-acc[open] summary .cv-chev { transform: rotate(90deg); }
+    details.cv-acc summary:hover { background: rgba(255,255,255,0.04); }
+    details.cv-acc .cv-acc-body { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px; }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
@@ -43,7 +50,7 @@
           CUMES <span class="text-indigo-400">&amp;</span> VALES
           <span class="hidden sm:inline-block text-indigo-400 text-[11px] font-semibold px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full">Topografia de Liquidez 3D</span>
         </h1>
-        <p class="text-[11px] text-slate-400">Hora do Dia (X) × Faixa de Preço (Y) × Volume Acumulado (Z) · ondas ABC · telemetria</p>
+        <p class="text-[11px] text-slate-400">Hora do Dia (X) × Faixa de Preço (Y) × Volume Acumulado (Z) · POC · média móvel · telemetria</p>
       </div>
     </div>
     <div class="flex items-center space-x-2">
@@ -95,7 +102,6 @@
           <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #334155 0%, #3b82f6 30%, #06b6d4 50%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
           <span class="text-amber-400 font-semibold">POC (Pico)</span>
           <span class="mx-2 text-slate-600">|</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]"></span> Onda ABC</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#0088FF]"></span> Compra</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FF1E42]"></span> Venda</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]" style="opacity:.45"></span> Rastro</span>
@@ -120,129 +126,122 @@
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between">
         <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> Controles da Malha 3D</h2>
       </div>
-      <div class="p-4 flex-1 overflow-y-auto space-y-4 text-xs">
+      <div class="p-3 flex-1 overflow-y-auto space-y-2 text-xs">
 
-        <div class="space-y-1.5">
-          <label class="text-slate-300 font-medium block">Período de Análise</label>
-          <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-            <button id="period-day" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-calendar-day"></i> Dia</button>
-            <button id="period-week" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar-week"></i> Semana</button>
-            <button id="period-month" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar"></i> Mês</button>
+        <details class="cv-acc" open>
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-indigo-400"></i> Período &amp; Datas</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+              <button id="period-day" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-calendar-day"></i> Dia</button>
+              <button id="period-week" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar-week"></i> Semana</button>
+              <button id="period-month" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar"></i> Mês</button>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">De</span><input id="f-date-from" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Até</span><input id="f-date-to" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            </div>
+            <button id="btn-clear-dates" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-xmark text-indigo-400"></i> Limpar datas</button>
           </div>
-        </div>
+        </details>
 
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Filtro de Horário (Eixo X)</div>
-          <div class="grid grid-cols-2 gap-1.5">
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Início</span><input id="f-start" type="time" value="09:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Fim</span><input id="f-end" type="time" value="18:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+        <details class="cv-acc" open>
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-filter text-indigo-400"></i> Filtros</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="grid grid-cols-2 gap-1.5">
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Hora início</span><input id="f-start" type="time" value="09:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Hora fim</span><input id="f-end" type="time" value="18:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Preço mín</span><input id="f-pmin" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Preço máx</span><input id="f-pmax" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            </div>
+            <select id="vol-filter" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
+              <option value="all">Todos os volumes</option>
+              <option value="low">Baixo (0–30%)</option>
+              <option value="medium">Médio (30–60%)</option>
+              <option value="high">Alto (60%+)</option>
+              <option value="aboveavg">Acima da média</option>
+            </select>
+            <button id="btn-filters" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-filter text-indigo-400"></i> Aplicar Filtros</button>
           </div>
-        </div>
+        </details>
 
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Faixa de Preço (Eixo Y)</div>
-          <div class="grid grid-cols-2 gap-1.5">
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Mínimo</span><input id="f-pmin" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Máximo</span><input id="f-pmax" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+        <details class="cv-acc">
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-mountain text-indigo-400"></i> Modelo &amp; Malha</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+              <button id="mode-topo" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-mountain"></i> Topográfico</button>
+              <button id="mode-trail" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-timeline"></i> Trilha Linear</button>
+            </div>
+            <div id="topo-style-group" class="space-y-1.5">
+              <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+                <button id="submode-mesh" class="py-1.5 px-2 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-draw-polygon"></i> Terreno (Mesh)</button>
+                <button id="submode-bars" class="py-1.5 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-cubes"></i> Grade (Colunas)</button>
+              </div>
+            </div>
+            <div id="grid-res-group" class="space-y-2">
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-slate-300"><span>Subdivisões de Preço (Y)</span><span id="val-price-bins" class="font-mono text-indigo-400 font-semibold">32 faixas</span></div>
+                <input type="range" id="slider-price-bins" min="12" max="60" step="2" value="32" class="w-full accent-indigo-500 cursor-pointer">
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-slate-300"><span>Zoom Temporal (X)</span><span id="val-time-zoom" class="font-mono text-indigo-400 font-semibold">30 min</span></div>
+                <input type="range" id="slider-time-zoom" min="0" max="4" step="1" value="0" class="w-full accent-indigo-500 cursor-pointer">
+                <div class="flex justify-between text-[9px] text-slate-500"><span>30m</span><span>15m</span><span>10m</span><span>5m</span><span>1m</span></div>
+              </div>
+            </div>
           </div>
-          <button id="btn-filters" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-filter text-indigo-400"></i> Aplicar Filtros</button>
-        </div>
+        </details>
 
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Datas (Calendário)</div>
-          <div class="grid grid-cols-2 gap-1.5">
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">De</span><input id="f-date-from" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Até</span><input id="f-date-to" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+        <details class="cv-acc">
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-up-down text-indigo-400"></i> Escala &amp; Inclinação</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-slate-300"><span>Elevação do Volume (Z)</span><span id="val-z-scale" class="font-mono text-amber-400 font-semibold">1.2x</span></div>
+              <input type="range" id="slider-z-scale" min="0.3" max="3.0" step="0.1" value="1.2" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-slate-300"><span>Inclinação do Preço (Y)</span><span id="val-price-tilt" class="font-mono text-cyan-300 font-semibold">12°</span></div>
+              <input type="range" id="slider-price-tilt" min="0" max="45" step="1" value="12" class="w-full accent-cyan-500 cursor-pointer">
+            </div>
           </div>
-          <button id="btn-clear-dates" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-xmark text-indigo-400"></i> Limpar datas</button>
-        </div>
+        </details>
 
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Filtro de Volume</div>
-          <select id="vol-filter" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
-            <option value="all">Todos os volumes</option>
-            <option value="low">Baixo (0–30%)</option>
-            <option value="medium">Médio (30–60%)</option>
-            <option value="high">Alto (60%+)</option>
-            <option value="aboveavg">Acima da média</option>
-          </select>
-        </div>
-
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Ajustar POC manualmente (mover no eixo Z)</div>
-          <input id="ref-price" type="number" placeholder="vazio = automático (POC)" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-500">
-        </div>
-
-        <div class="space-y-2 pt-1 border-t border-slate-800/80">
-          <div class="text-slate-300 font-medium">Média Móvel (período)</div>
-          <input id="ma-period" type="number" value="20" min="1" placeholder="período" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-amber-500">
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="text-slate-300 font-medium block">Modelo Geométrico</label>
-          <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-            <button id="mode-topo" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-mountain"></i> Topográfico</button>
-            <button id="mode-trail" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-timeline"></i> Trilha Linear</button>
+        <details class="cv-acc" open>
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-indigo-400"></i> Camadas &amp; Linhas</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="flex items-center justify-between"><span class="text-slate-300">Malha / Curvas de Nível</span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-wireframe" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">Perfil Intra-barra <span class="text-slate-500">(heatmap na barra)</span></span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-intrabar"><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">POC <span class="text-slate-500">(linha automática)</span></span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-poc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">Média Móvel</span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-ma" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
+            <input id="ref-price" type="number" placeholder="POC manual (vazio = automático)" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-500">
+            <input id="ma-period" type="number" value="20" min="1" placeholder="período da média móvel" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-amber-500">
           </div>
-        </div>
+        </details>
 
-        <div id="topo-style-group" class="space-y-1.5">
-          <label class="text-slate-300 font-medium block">Estilo de Superfície</label>
-          <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-            <button id="submode-mesh" class="py-1.5 px-2 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-draw-polygon"></i> Terreno (Mesh)</button>
-            <button id="submode-bars" class="py-1.5 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-cubes"></i> Grade (Colunas)</button>
+        <details class="cv-acc">
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-satellite-dish text-indigo-400"></i> Tempo Real (WebSocket)</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div id="ws-status" class="flex items-center gap-2 text-[11px] text-slate-400"><span id="ws-status-dot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="ws-status-text">Offline</span></div>
+            <input id="ws-url" type="text" value="ws://localhost:8000/ws" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
+            <button id="btn-ws" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-plug text-indigo-400"></i> Conectar WS</button>
           </div>
-        </div>
-
-        <div id="grid-res-group" class="space-y-3 pt-1 border-t border-slate-800/80">
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-slate-300"><span>Subdivisões de Preço (Y)</span><span id="val-price-bins" class="font-mono text-indigo-400 font-semibold">32 faixas</span></div>
-            <input type="range" id="slider-price-bins" min="12" max="60" step="2" value="32" class="w-full accent-indigo-500 cursor-pointer">
-          </div>
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-slate-300"><span>Zoom Temporal (X)</span><span id="val-time-zoom" class="font-mono text-indigo-400 font-semibold">30 min</span></div>
-            <input type="range" id="slider-time-zoom" min="0" max="4" step="1" value="0" class="w-full accent-indigo-500 cursor-pointer">
-            <div class="flex justify-between text-[9px] text-slate-500"><span>30m</span><span>15m</span><span>10m</span><span>5m</span><span>1m</span></div>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
-          <div class="flex justify-between text-slate-300"><span>Elevação do Volume (Z)</span><span id="val-z-scale" class="font-mono text-amber-400 font-semibold">1.2x</span></div>
-          <input type="range" id="slider-z-scale" min="0.3" max="3.0" step="0.1" value="1.2" class="w-full accent-amber-500 cursor-pointer">
-        </div>
-
-        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
-          <div class="flex justify-between text-slate-300"><span>Inclinação do Preço (Y)</span><span id="val-price-tilt" class="font-mono text-cyan-300 font-semibold">12°</span></div>
-          <input type="range" id="slider-price-tilt" min="0" max="45" step="1" value="12" class="w-full accent-cyan-500 cursor-pointer">
-        </div>
-
-        <div class="space-y-2.5 pt-1 border-t border-slate-800/80">
-          <div class="flex items-center justify-between"><span class="text-slate-300">Malha / Curvas de Nível</span>
-            <label class="cv-switch"><input type="checkbox" id="toggle-wireframe" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
-          </div>
-          <div class="flex items-center justify-between"><span class="text-slate-300">Perfil Intra-barra <span class="text-slate-500">(heatmap na barra)</span></span>
-            <label class="cv-switch"><input type="checkbox" id="toggle-intrabar"><span class="cv-track"><span class="cv-thumb"></span></span></label>
-          </div>
-          <div class="flex items-center justify-between"><span class="text-slate-300">POC <span class="text-slate-500">(linha automática)</span></span>
-            <label class="cv-switch"><input type="checkbox" id="toggle-poc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
-          </div>
-          <div class="flex items-center justify-between"><span class="text-slate-300">Média Móvel</span>
-            <label class="cv-switch"><input type="checkbox" id="toggle-ma" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
-          </div>
-          <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
-            <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
-          <label class="text-slate-300 font-medium block">Tempo Real (WebSocket)</label>
-          <input id="ws-url" type="text" value="ws://localhost:8000/ws" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
-          <button id="btn-ws" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-plug text-indigo-400"></i> Conectar WS</button>
-        </div>
+        </details>
 
         <div class="bg-dark-950/80 border border-slate-800/90 p-3 rounded-xl space-y-1.5">
           <h3 class="font-semibold text-slate-200 flex items-center gap-1.5 text-[11px]"><i class="fa-solid fa-compass text-indigo-400"></i> Leitura Topográfica</h3>
-          <p class="text-[11px] text-slate-400 leading-relaxed">Sobreposição dos horários do pregão no plano <b class="text-slate-300">X × Y</b>: montanhas quentes revelam onde os players concentram liquidez. O <b class="text-slate-300">Perfil Intra-barra</b> pinta o mapa de calor do volume dentro de cada barra. No <b class="text-slate-300">Tempo Real</b>, as operações seguem os requisitos do robô <b class="text-cyan-300">Piolho Agressivo</b>.</p>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Sobreposição dos horários do pregão no plano <b class="text-slate-300">X × Y</b>: montanhas quentes revelam onde os players concentram liquidez. No <b class="text-slate-300">Tempo Real</b>, o rastro dourado traça a operação aberta até o fechamento, seguindo os requisitos do robô <b class="text-cyan-300">Piolho Agressivo</b>.</p>
         </div>
       </div>
     </aside>
@@ -308,6 +307,7 @@
     let pivots = [];
     let trades = [];
     let ws = null;
+    let lastTick = null;
     let liveFeed = null;
 
     let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
@@ -1005,7 +1005,7 @@
           for (let i = 1; i < worldPts.length - (open ? 1 : 0); i += step) { const p = worldPts[i]; const a = makeArrow(trade.direction, pastel, 0.32, { flat: true }); a.position.set(p.x, p.y, p.z); g.add(a); }
 
           if (!open) { const exit = worldPoint(trade.exitM, trade.exitPrice); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); addAnchorBeam(g, exit.x, exit.y, exit.z, dirColor); }
-          else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip }; activeTradeGroups.push(g); }
+          else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip, trade }; activeTradeGroups.push(g); }
           overlayGroup.add(g);
         }
       }
@@ -1085,6 +1085,11 @@
         const close = num(msg.close ?? msg.c), open = num(msg.open ?? msg.o, close), high = num(msg.high ?? msg.h, close), low = num(msg.low ?? msg.l, close), vol = num(msg.volume ?? msg.vol ?? msg.tick_volume, 0);
         if (!isFinite(close)) return;
         rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open, high, low, close, volume: vol });
+      } else if (type === 'tick') {
+        const time = ts(msg.time ?? msg.ts); if (time == null) return;
+        const price = num(msg.bid ?? msg.ask ?? msg.price);
+        if (isFinite(price)) lastTick = { time, price };
+        return;
       } else if (type === 'pivot' || type === 'abc') {
         const aT = ts(msg.a_time ?? msg.a?.time), bT = ts(msg.b_time ?? msg.b?.time), cT = ts(msg.c_time ?? msg.c?.time);
         if ([aT, bT, cT].some((x) => x == null)) return;
@@ -1098,16 +1103,26 @@
       updateVisualization();
     }
 
+    function setWsStatus(state, text) {
+      const dot = document.getElementById('ws-status-dot');
+      const label = document.getElementById('ws-status-text');
+      if (!dot || !label) return;
+      if (state === 'on') { dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse'; label.textContent = text; label.className = 'text-emerald-400'; }
+      else if (state === 'connecting') { dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse'; label.textContent = text; label.className = 'text-amber-400'; }
+      else { dot.className = 'w-2 h-2 rounded-full bg-rose-500'; label.textContent = text; label.className = 'text-rose-400'; }
+    }
+
     function connectWS() {
       const url = document.getElementById('ws-url').value.trim() || 'ws://localhost:8000/ws';
       if (ws) { ws.close(); ws = null; }
-      try { ws = new WebSocket(url); } catch { showToast('WebSocket inválido.', true); return; }
+      try { ws = new WebSocket(url); } catch { setWsStatus('off', 'WebSocket inválido'); showToast('WebSocket inválido.', true); return; }
+      setWsStatus('connecting', 'Conectando…');
       document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
       document.getElementById('badge-text').textContent = `WS conectando…`;
       setBadge('live');
-      ws.onopen = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${url}`; showToast('WebSocket conectado.'); };
-      ws.onclose = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; document.getElementById('badge-text').textContent = 'WS desconectado'; };
-      ws.onerror = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
+      ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${url}`; showToast('WebSocket conectado.'); };
+      ws.onclose = () => { setWsStatus('off', 'Desconectado'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; document.getElementById('badge-text').textContent = 'WS desconectado'; };
+      ws.onerror = () => { setWsStatus('off', 'Erro de conexão'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
       ws.onmessage = (ev) => { try { handleLiveMessage(JSON.parse(ev.data)); } catch { /* ignore */ } };
     }
 
@@ -1194,6 +1209,13 @@
         if (m && m.emissiveIntensity !== undefined) m.emissiveIntensity = (1.6 + Math.sin(t * 6) * 0.8) * flicker;
         if (a.entryArrow.userData.glow) a.entryArrow.userData.glow.scale.setScalar(4.8 * pulse);
         a.sphere.scale.setScalar(1 + Math.sin(t * 6) * 0.35);
+        if (lastTick && a.trade) {
+          const tt = todMin(lastTick.time);
+          const lp = worldPoint(tt, lastTick.price);
+          a.sphere.position.x = lp.x;
+          a.sphere.position.z = lp.z;
+          a.tip = lp;
+        }
         a.sphere.position.y = a.tip.y + Math.sin(t * 6) * 0.9;
       }
       controls.update();
