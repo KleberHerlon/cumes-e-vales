@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUMES E VALES — Topografia de Liquidez (Preço × Tempo × Volume)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { dark: { 950: '#020617', 900: '#0f172a', 800: '#1e293b', 700: '#334155' } } } }
+    };
+  </script>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .cv-switch { position: relative; display: inline-flex; cursor: pointer; }
+    .cv-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .cv-track { width: 36px; height: 20px; background: #334155; border-radius: 9999px; transition: all .2s; }
+    .cv-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 9999px; transition: all .2s; }
+    .cv-switch input:checked + .cv-track { background: #6366f1; }
+    .cv-switch input:checked + .cv-track .cv-thumb { left: 18px; }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
+
+  <header class="bg-dark-900/95 backdrop-blur border-b border-slate-800 px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 z-20 shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600/20 border border-indigo-500/30 p-2 rounded-xl text-indigo-400">
+        <i class="fa-solid fa-mountain-sun text-lg"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base md:text-lg tracking-tight text-white flex items-center gap-2">
+          CUMES <span class="text-indigo-400">&amp;</span> VALES
+          <span class="hidden sm:inline-block text-indigo-400 text-[11px] font-semibold px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full">Topografia de Liquidez 3D</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">Hora do Dia (X) × Faixa de Preço (Y) × Volume Acumulado (Z) · ondas ABC · telemetria</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <span id="badge-dataset" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"><span id="ws-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span id="badge-text">Simulado (15 pregões)</span></span>
+      <button id="btn-load-mock" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-2">
+        <i class="fa-solid fa-rotate text-indigo-400"></i><span class="hidden sm:inline">Gerar Pregões Simulados</span><span class="sm:hidden">Simular</span>
+      </button>
+      <label class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg cursor-pointer transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+        <i class="fa-solid fa-file-csv"></i><span>Carregar CSV</span>
+        <input type="file" id="csv-file-input" accept=".csv,.txt" multiple class="hidden">
+      </label>
+    </div>
+  </header>
+
+  <div class="flex-1 relative flex flex-col lg:flex-row overflow-hidden">
+
+    <div id="canvas-container" class="flex-1 relative bg-dark-950 cursor-grab active:cursor-grabbing min-h-[320px]">
+
+      <div class="absolute top-3 left-3 z-10 pointer-events-none flex flex-col gap-2">
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-chart-area text-indigo-400"></i> Resumo do Mapa</span>
+            <span id="badge-mode" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Topográfico</span>
+          </div>
+          <div class="flex justify-between"><span class="text-slate-400">Registros:</span><span id="stat-points" class="font-mono font-semibold text-slate-200">0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Amplitude de Preço:</span><span id="stat-price-range" class="font-mono font-semibold text-slate-200">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Pico POC (Máx Vol):</span><span id="stat-poc" class="font-mono font-semibold text-amber-400">0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Faixa POC Dominante:</span><span id="stat-poc-zone" class="font-mono font-semibold text-rose-400">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Ondas ABC / Trades:</span><span id="stat-abc" class="font-mono font-semibold text-slate-200">0 / 0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Período:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
+        </div>
+      </div>
+
+      <div class="absolute top-3 right-3 z-10 flex flex-col gap-2">
+        <button id="btn-cam-iso" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-cube text-indigo-400"></i><span class="hidden sm:inline">3D Isométrica</span></button>
+        <button id="btn-cam-top" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-border-all text-emerald-400"></i><span class="hidden sm:inline">Topo (Heatmap)</span></button>
+        <button id="btn-cam-side" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-chart-bar text-amber-400"></i><span class="hidden sm:inline">Lateral (Profile)</span></button>
+        <button id="btn-help" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-300 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-circle-question text-slate-400"></i><span class="hidden sm:inline">Ajuda CSV</span></button>
+      </div>
+
+      <div class="absolute bottom-3 left-3 z-10 pointer-events-none flex flex-col gap-2">
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[11px] text-slate-300 flex flex-wrap items-center gap-3 shadow-lg">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> X: <b id="legend-x">Hora do Dia</b></span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Y: <b id="legend-y">Faixa de Preço</b></span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Z: <b>Volume</b></span>
+        </div>
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[10px] text-slate-400 flex items-center gap-2 shadow-lg">
+          <span>Baixo Vol</span>
+          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #0f172a 0%, #1d4ed8 25%, #06b6d4 50%, #f59e0b 75%, #ef4444 100%);"></div>
+          <span class="text-amber-400 font-semibold">POC (Pico)</span>
+          <span class="mx-2 text-slate-600">|</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]"></span> Onda ABC</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#0088FF]"></span> Compra</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FF1E42]"></span> Venda</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]" style="opacity:.45"></span> Rastro</span>
+        </div>
+      </div>
+
+      <div id="hover-tooltip" class="fixed z-40 pointer-events-none hidden bg-dark-900/95 backdrop-blur-md border border-indigo-500/40 rounded-xl p-3 shadow-2xl text-xs min-w-[200px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-1.5">
+          <span id="tt-title" class="font-semibold text-white">Célula Topográfica</span>
+          <span id="tt-poc-badge" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">ZONA POC</span>
+        </div>
+        <div class="space-y-1 text-[11px]">
+          <div class="flex justify-between"><span class="text-slate-400" id="tt-label-x">Horário:</span><span id="tt-val-x" class="font-mono text-slate-100 font-semibold">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400" id="tt-label-y">Faixa de Preço:</span><span id="tt-val-y" class="font-mono text-emerald-400 font-semibold">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Volume Acumulado:</span><span id="tt-val-z" class="font-mono text-amber-400 font-bold">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Intensidade Relativa:</span><span id="tt-val-pct" class="font-mono text-indigo-300">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="w-full lg:w-80 bg-dark-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col z-10 shrink-0 max-h-[44vh] lg:max-h-none">
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between">
+        <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> Controles da Malha 3D</h2>
+      </div>
+      <div class="p-4 flex-1 overflow-y-auto space-y-4 text-xs">
+
+        <div class="space-y-1.5">
+          <label class="text-slate-300 font-medium block">Período de Análise</label>
+          <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+            <button id="period-day" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-calendar-day"></i> Dia</button>
+            <button id="period-week" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar-week"></i> Semana</button>
+            <button id="period-month" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar"></i> Mês</button>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Filtro de Horário (Eixo X)</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Início</span><input id="f-start" type="time" value="09:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Fim</span><input id="f-end" type="time" value="18:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Faixa de Preço (Eixo Y)</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Mínimo</span><input id="f-pmin" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Máximo</span><input id="f-pmax" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+          </div>
+          <button id="btn-filters" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-filter text-indigo-400"></i> Aplicar Filtros</button>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-slate-300 font-medium block">Modelo Geométrico</label>
+          <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+            <button id="mode-topo" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-mountain"></i> Topográfico</button>
+            <button id="mode-trail" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-timeline"></i> Trilha Linear</button>
+          </div>
+        </div>
+
+        <div id="topo-style-group" class="space-y-1.5">
+          <label class="text-slate-300 font-medium block">Estilo de Superfície</label>
+          <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+            <button id="submode-mesh" class="py-1.5 px-2 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-draw-polygon"></i> Terreno (Mesh)</button>
+            <button id="submode-bars" class="py-1.5 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-cubes"></i> Grade (Colunas)</button>
+          </div>
+        </div>
+
+        <div id="grid-res-group" class="space-y-3 pt-1 border-t border-slate-800/80">
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-slate-300"><span>Subdivisões de Preço (Y)</span><span id="val-price-bins" class="font-mono text-indigo-400 font-semibold">32 faixas</span></div>
+            <input type="range" id="slider-price-bins" min="12" max="60" step="2" value="32" class="w-full accent-indigo-500 cursor-pointer">
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-slate-300"><span>Zoom Temporal (X)</span><span id="val-time-zoom" class="font-mono text-indigo-400 font-semibold">30 min</span></div>
+            <input type="range" id="slider-time-zoom" min="0" max="4" step="1" value="0" class="w-full accent-indigo-500 cursor-pointer">
+            <div class="flex justify-between text-[9px] text-slate-500"><span>30m</span><span>15m</span><span>10m</span><span>5m</span><span>1m</span></div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
+          <div class="flex justify-between text-slate-300"><span>Elevação do Volume (Z)</span><span id="val-z-scale" class="font-mono text-amber-400 font-semibold">1.2x</span></div>
+          <input type="range" id="slider-z-scale" min="0.3" max="3.0" step="0.1" value="1.2" class="w-full accent-amber-500 cursor-pointer">
+        </div>
+
+        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
+          <div class="flex justify-between text-slate-300"><span>Inclinação do Preço (Y)</span><span id="val-price-tilt" class="font-mono text-cyan-300 font-semibold">12°</span></div>
+          <input type="range" id="slider-price-tilt" min="0" max="45" step="1" value="12" class="w-full accent-cyan-500 cursor-pointer">
+        </div>
+
+        <div class="space-y-2.5 pt-1 border-t border-slate-800/80">
+          <div class="flex items-center justify-between"><span class="text-slate-300">Malha / Curvas de Nível</span>
+            <label class="cv-switch"><input type="checkbox" id="toggle-wireframe" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+          </div>
+          <div class="flex items-center justify-between"><span class="text-slate-300">Perfil Intra-barra <span class="text-slate-500">(heatmap na barra)</span></span>
+            <label class="cv-switch"><input type="checkbox" id="toggle-intrabar"><span class="cv-track"><span class="cv-thumb"></span></span></label>
+          </div>
+          <div class="flex items-center justify-between"><span class="text-slate-300">Ondas ABC <span class="text-slate-500">(requisitos Piolho Agressivo)</span></span>
+            <label class="cv-switch"><input type="checkbox" id="toggle-abc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+          </div>
+          <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
+            <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
+          <label class="text-slate-300 font-medium block">Tempo Real (WebSocket)</label>
+          <input id="ws-url" type="text" value="ws://localhost:8000/ws" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
+          <button id="btn-ws" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-plug text-indigo-400"></i> Conectar WS</button>
+        </div>
+
+        <div class="bg-dark-950/80 border border-slate-800/90 p-3 rounded-xl space-y-1.5">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-1.5 text-[11px]"><i class="fa-solid fa-compass text-indigo-400"></i> Leitura Topográfica</h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Sobreposição dos horários do pregão no plano <b class="text-slate-300">X × Y</b>: montanhas quentes revelam onde os players concentram liquidez. O <b class="text-slate-300">Perfil Intra-barra</b> pinta o mapa de calor do volume dentro de cada barra. No <b class="text-slate-300">Tempo Real</b>, as ondas ABC e operações seguem os requisitos do robô <b class="text-cyan-300">Piolho Agressivo</b>.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="help-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2"><i class="fa-solid fa-file-csv text-indigo-400"></i> Formatos de CSV Compatíveis</h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-slate-300 text-xs leading-relaxed">Detecção automática de separador (<b>,</b> ou <b>;</b>) e do tipo de arquivo pelo cabeçalho:</p>
+      <div class="bg-dark-950 p-3.5 rounded-xl border border-slate-800 font-mono text-[11px] text-indigo-300 overflow-x-auto space-y-2">
+        <div><span class="text-slate-500">// Candles OHLCV (MetaTrader/Profit)</span><br>DATE;TIME;OPEN;HIGH;LOW;CLOSE;TICKVOL<br>2026.11.10;09:05:00;128450;128500;128400;128480;1450</div>
+        <div><span class="text-slate-500">// Trades (backtest abc-trader)</span><br>symbol,timeframe,direction,entry_time,exit_time,entry,stop,target,exit_price,exit_reason,result_r</div>
+        <div><span class="text-slate-500">// Histórico (separador ;)</span><br>status;abertura;fechamento;lado;entrada;stop;alvo;saida;resultado</div>
+      </div>
+      <div class="flex justify-end pt-2"><button id="btn-got-it" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition">Entendi</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-dark-900 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-xs flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toast-icon"></i>
+    <span id="toast-message">Mensagem</span>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const PLANE_WIDTH = 64, PLANE_DEPTH = 64, MAX_HEIGHT = 26;
+    const SESSION_START = 540, SESSION_END = 1080;
+    const COLORS = { gain: 0x00ff88, stop: 0xff3366, active: 0x22d3ee, buy: 0x0088ff, sell: 0xff1e42, gold: 0xffd700, buyPastel: 0x55718f, sellPastel: 0x9a6a6a, gray: 0x666666, path: 0x6366f1 };
+
+    let viewMode = 'topographic';
+    let topoSubMode = 'mesh';
+    let priceBinsCount = 32;
+    let timeBinsCount = 24;
+    let zScaleFactor = 1.2;
+    let showWireframe = true;
+    let showIntraBar = false;
+    let showABC = true;
+    let showTrail = true;
+    let tzOffsetHours = -3;
+    let period = 'day';
+    let filterStart = SESSION_START;
+    let filterEnd = SESSION_END;
+    let priceMin = null;
+    let priceMax = null;
+    let priceTilt = 12;
+    let timeZoom = 0;
+    const TIME_ZOOM = [30, 15, 10, 5, 1];
+
+    let rawMarketData = [];
+    let pivots = [];
+    let trades = [];
+    let ws = null;
+    let liveFeed = null;
+
+    let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
+    let terrainState = null;
+    let activeData = [];
+    let activeWindow = { days: new Set(), t0: 0, t1: 0 };
+    let activeTradeGroups = [];
+
+    let scene, camera, renderer, controls, raycaster, mouse;
+    const sceneGroup = new THREE.Group();
+    const overlayGroup = new THREE.Group();
+    let interactiveMeshes = [];
+
+    const container = document.getElementById('canvas-container');
+    const tooltip = document.getElementById('hover-tooltip');
+
+    function showToast(msg, isError = false) {
+      document.getElementById('toast-message').textContent = msg;
+      document.getElementById('toast-icon').className = isError ? 'fa-solid fa-triangle-exclamation text-rose-400 text-base' : 'fa-solid fa-circle-check text-emerald-400 text-base';
+      const t = document.getElementById('toast');
+      t.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3800);
+    }
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020617);
+      scene.fog = new THREE.FogExp2(0x020617, 0.0055);
+      camera = new THREE.PerspectiveCamera(48, container.clientWidth / container.clientHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      container.appendChild(renderer.domElement);
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 20;
+      controls.maxDistance = 220;
+      scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+      const l1 = new THREE.DirectionalLight(0xffffff, 0.9); l1.position.set(45, 85, 45); scene.add(l1);
+      const l2 = new THREE.DirectionalLight(0x818cf8, 0.45); l2.position.set(-50, 40, -40); scene.add(l2);
+      scene.add(sceneGroup);
+      scene.add(overlayGroup);
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      window.addEventListener('resize', onWindowResize);
+      container.addEventListener('mousemove', onMouseMove);
+      container.addEventListener('mouseleave', () => tooltip.classList.add('hidden'));
+      setCameraPreset('iso');
+    }
+
+    function onWindowResize() {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function setCameraPreset(preset) {
+      if (!camera || !controls) return;
+      if (preset === 'iso') { camera.position.set(58, 52, 64); controls.target.set(0, 6, 0); }
+      else if (preset === 'top') { camera.position.set(0, 92, 0.01); controls.target.set(0, 0, 0); }
+      else if (preset === 'side') { camera.position.set(88, 18, 0); controls.target.set(0, 8, 0); }
+      controls.update();
+    }
+
+    function getThermalColor(t) {
+      const c = new THREE.Color();
+      if (t < 0.05) c.setHex(0x0f172a);
+      else if (t < 0.25) { const l = (t - 0.05) / 0.20; c.setRGB(0.06 + l * 0.05, 0.12 + l * 0.28, 0.28 + l * 0.58); }
+      else if (t < 0.50) { const l = (t - 0.25) / 0.25; c.setRGB(0.11 - l * 0.07, 0.40 + l * 0.42, 0.86 - l * 0.16); }
+      else if (t < 0.78) { const l = (t - 0.50) / 0.28; c.setRGB(0.04 + l * 0.94, 0.82 - l * 0.14, 0.70 - l * 0.62); }
+      else { const l = (t - 0.78) / 0.22; c.setRGB(0.98, 0.68 - l * 0.48, 0.08 + l * 0.07); }
+      return c;
+    }
+
+    function fmtHM(min) { const m = ((min % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; }
+    function todMin(ts) { const d = new Date(ts * 1000); const m = d.getUTCHours() * 60 + d.getUTCMinutes() + tzOffsetHours * 60; return ((m % 1440) + 1440) % 1440; }
+
+    function generateSimulatedData() {
+      const records = [];
+      pivots = [];
+      trades = [];
+      const numDays = 30;
+      const startHour = 9, endHour = 18;
+      const totalMin = (endHour - startHour) * 60;
+      const baseDay = Date.UTC(2026, 0, 5, 0, 0, 0) / 1000;
+      const centers = [
+        { price: 128250, timeMin: 45, spreadP: 180, spreadT: 50, intensity: 1.0 },
+        { price: 128850, timeMin: 150, spreadP: 220, spreadT: 75, intensity: 1.35 },
+        { price: 128550, timeMin: 310, spreadP: 160, spreadT: 60, intensity: 0.85 },
+        { price: 129150, timeMin: 460, spreadP: 210, spreadT: 55, intensity: 1.25 },
+      ];
+      for (let day = 0; day < numDays; day++) {
+        let price = 128400 + Math.sin(day * 0.8) * 350;
+        let prevClose = price;
+        for (let m = 0; m < totalMin; m += 2) {
+          const minuteOfDay = startHour * 60 + m;
+          const time = baseDay + day * 86400 + (minuteOfDay + 180) * 60;
+          const pull = (128700 - price) * 0.008;
+          const open = prevClose;
+          let close = open + pull + (Math.random() - 0.5) * 85;
+          const high = Math.max(open, close) + Math.random() * 30;
+          const low = Math.min(open, close) - Math.random() * 30;
+          const dayProgress = m / totalMin;
+          const uCurve = 1.4 - Math.sin(dayProgress * Math.PI) * 0.85;
+          let volume = (Math.random() * 600 + 300) * uCurve;
+          for (const c of centers) {
+            const dP = (price - c.price) / c.spreadP, dT = (m - c.timeMin) / c.spreadT;
+            volume += Math.exp(-0.5 * (dP * dP + dT * dT)) * 4200 * c.intensity * (0.7 + Math.random() * 0.6);
+          }
+          records.push({ dayIndex: day, minuteOfDay, timeLabel: fmtHM(minuteOfDay), time, open, high, low, close, volume: Math.round(volume) });
+          prevClose = close; price = close;
+        }
+      }
+      for (let day = 0; day < numDays; day++) {
+        const n = 3 + Math.floor(Math.random() * 3);
+        for (let k = 0; k < n; k++) {
+          const m = Math.floor(Math.random() * (totalMin - 180)) + 50;
+          const minuteOfDay = startHour * 60 + m;
+          const time = baseDay + day * 86400 + (minuteOfDay + 180) * 60;
+          const up = Math.random() > 0.5;
+          const p = 128200 + Math.random() * 1400;
+          const wave = 140 + Math.random() * 220;
+          const leg1 = 20 + Math.floor(Math.random() * 20);
+          const leg2 = 20 + Math.floor(Math.random() * 20);
+          const dir = up ? 'compra' : 'venda';
+          const a = { t: time, m: minuteOfDay, p: up ? p : p + wave };
+          const b = { t: time + leg1 * 60, m: minuteOfDay + leg1, p: up ? p + wave : p - wave };
+          const c = { t: time + (leg1 + leg2) * 60, m: minuteOfDay + leg1 + leg2, p: up ? p + wave * 0.3 : p - wave * 0.3 };
+          const r = Math.random();
+          const result = r < 0.5 ? 'gain' : r < 0.85 ? 'stop' : 'filtered';
+          const scenario = Math.random() > 0.5 ? 'EXAUSTAO/INVERSAO' : 'CONTINUIDADE/DEFESA';
+          const confidence = 0.5 + Math.random() * 0.45;
+          pivots.push({ a, b, c, scenario, direction: dir, result, confidence });
+          if (result !== 'filtered') {
+            const entryM = c.m;
+            const exitM = entryM + Math.floor(15 + Math.random() * 30);
+            const target = up ? c.p + wave * 0.6 : c.p - wave * 0.6;
+            const exitP = result === 'gain' ? (up ? c.p + wave * 0.5 : c.p - wave * 0.5) : (up ? b.p : b.p + wave * 0.2);
+            trades.push({ id: `d${day}k${k}`, direction: dir, scenario, confidence, entryTime: c.t, entryM, entryPrice: c.p, exitTime: c.t + (exitM - entryM) * 60, exitM, exitPrice: exitP, result, stop: b.p, target, dayIndex: day });
+          }
+        }
+      }
+      trades.sort((a, b) => a.entryTime - b.entryTime);
+      document.getElementById('badge-text').textContent = `Simulado (${numDays} pregões)`;
+      setBadge('sim');
+      return records;
+    }
+
+    function setBadge(kind) {
+      const b = document.getElementById('badge-dataset');
+      if (kind === 'sim') b.className = 'hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium';
+      else if (kind === 'csv') b.className = 'hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium';
+      else b.className = 'hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium';
+    }
+
+    function num(v, fb = NaN) { const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? fb : n; }
+    function ts(v) { const n = Number(v); if (isFinite(n) && n > 1e11) return Math.floor(n / 1000); if (isFinite(n) && n > 1e9) return n; const d = new Date(String(v).replace(' ', 'T')); return isNaN(d.getTime()) ? null : Math.floor(d.getTime() / 1000); }
+    function dirFrom(raw) { const s = String(raw || '').toUpperCase(); return ['COMPRA', 'C', 'BUY', 'LONG', '1'].includes(s) ? 'compra' : 'venda'; }
+    function resultFrom(raw, r) { if (typeof r === 'number' && isFinite(r)) return r > 0 ? 'gain' : r < 0 ? 'stop' : 'filtered'; const s = String(raw || '').toLowerCase(); if (['target', 'gain', 'win', 'tp'].includes(s)) return 'gain'; if (['stop', 'loss', 'sl'].includes(s)) return 'stop'; return 'filtered'; }
+
+    function parseCSV(text) {
+      const head = text.slice(0, 500);
+      const delim = head.includes(';') && !head.includes(',') ? ';' : ',';
+      const lines = text.trim().split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) { showToast('CSV vazio ou sem linhas suficientes.', true); return; }
+      const split = (c) => { c = c.trim(); if (c.startsWith('"') && c.endsWith('"')) c = c.slice(1, -1).replace(/""/g, '"'); return c; };
+      const headers = lines[0].split(delim).map(split).map((h) => h.trim());
+      const keys = headers.map((h) => h.toLowerCase());
+      const has = (a) => a.some((x) => keys.includes(x));
+      const rows = lines.slice(1).map((l) => { const c = l.split(delim).map(split); const o = {}; headers.forEach((h, i) => { o[h] = c[i]; }); return o; });
+
+      let added = 0;
+      if (has(['open', 'o']) && has(['high', 'h']) && has(['low', 'l']) && has(['close', 'c'])) {
+        let dayCounter = 0, curDay = '';
+        for (const r of rows) {
+          const dateIdx = keys.findIndex((k) => ['date', 'data', 'datetime', 'timestamp', 'time'].includes(k));
+          const timeIdx = keys.findIndex((k) => k === 'time' || k === 'hora');
+          const price = num(r.close ?? r.c ?? r.ultimo ?? r.price);
+          const vol = num(r.volume ?? r.vol ?? r.tickvol ?? r.quantidade, 0);
+          if (!isFinite(price)) continue;
+          const open = num(r.open ?? r.o, price), high = num(r.high ?? r.h, price), low = num(r.low ?? r.l, price);
+          let minuteOfDay = null;
+          const rawDate = dateIdx !== -1 ? r[headers[dateIdx]] : '';
+          let rawTime = timeIdx !== -1 ? r[headers[timeIdx]] : '';
+          if (rawTime && rawTime.includes(':')) { const [hh, mm] = rawTime.split(':').map(Number); if (!isNaN(hh) && !isNaN(mm)) minuteOfDay = hh * 60 + mm; }
+          if (minuteOfDay == null && rawDate && rawDate.includes(':')) { const part = rawDate.split(' ')[1] || rawDate; const [hh, mm] = part.split(':').map(Number); if (!isNaN(hh) && !isNaN(mm)) minuteOfDay = hh * 60 + mm; }
+          if (minuteOfDay == null) minuteOfDay = 540 + ((added % 90) * 6);
+          const dp = String(rawDate).split(' ')[0];
+          if (dp && dp !== curDay) { curDay = dp; dayCounter++; }
+          const t = ts(rawDate) ?? (Date.UTC(2026, 0, 5, 0, 0, 0) / 1000 + dayCounter * 86400 + minuteOfDay * 60);
+          rawMarketData.push({ dayIndex: Math.max(0, dayCounter - 1), minuteOfDay, timeLabel: fmtHM(minuteOfDay), time: t, open, high, low, close: price, volume: vol });
+          added++;
+        }
+      } else if (has(['entry_time', 'entrada', 'abertura', 'entry'])) {
+        for (const r of rows) {
+          const entryTime = ts(r.entry_time ?? r.abertura ?? r.open_time ?? r.time);
+          const exitTime = ts(r.exit_time ?? r.fechamento ?? r.close_time);
+          const entryPrice = num(r.entry ?? r.entrada ?? r.price);
+          const exitPrice = num(r.exit_price ?? r.saida ?? r.close);
+          if (entryTime == null || !isFinite(entryPrice)) continue;
+          const dir = dirFrom(r.direction ?? r.side ?? r.lado);
+          const res = resultFrom(r.exit_reason ?? r.status ?? r.resultado, num(r.result_r ?? r.resultado));
+          const trade = { id: r.key || r.ticket || `t${entryTime}`, direction: dir, scenario: r.scenario ?? r.cenario ?? '', entryTime, entryM: todMin(entryTime), entryPrice, exitTime: exitTime != null && exitTime > entryTime ? exitTime : null, exitM: exitTime != null ? todMin(exitTime) : null, exitPrice: isFinite(exitPrice) ? exitPrice : entryPrice, result: res, stop: num(r.stop), target: num(r.target ?? r.alvo) };
+          trades.push(trade);
+          pivots.push(derivePivot(trade));
+          added++;
+        }
+      } else if (has(['a_time', 'a_price'])) {
+        for (const r of rows) {
+          const aT = ts(r.a_time), bT = ts(r.b_time), cT = ts(r.c_time);
+          const aP = num(r.a_price), bP = num(r.b_price), cP = num(r.c_price);
+          if ([aT, bT, cT].some((x) => x == null) || [aP, bP, cP].some((x) => !isFinite(x))) continue;
+          pivots.push({ a: { t: aT, m: todMin(aT), p: aP }, b: { t: bT, m: todMin(bT), p: bP }, c: { t: cT, m: todMin(cT), p: cP }, scenario: r.scenario || '', direction: dirFrom(r.direction ?? r.side), result: resultFrom(r.result ?? r.exit_reason, num(r.result_r)) });
+          added++;
+        }
+      }
+      setBadge('csv');
+      document.getElementById('badge-text').textContent = `CSV (${added} regs)`;
+      showToast(`CSV carregado: ${added} registros mapeados.`);
+    }
+
+    function derivePivot(trade) {
+      const span = 20;
+      const a = { t: trade.entryTime - span * 2 * 60, m: trade.entryM - span * 2, p: trade.entryPrice };
+      const b = { t: trade.entryTime - span * 60, m: trade.entryM - span, p: trade.entryPrice };
+      const c = { t: trade.entryTime, m: trade.entryM, p: trade.entryPrice };
+      let wave = Math.abs(trade.entryPrice - trade.exitPrice);
+      if (!isFinite(wave) || wave < 1) wave = 150;
+      if (trade.direction === 'compra') { a.p = trade.entryPrice - wave * 0.4; b.p = trade.entryPrice + wave * 0.6; }
+      else { a.p = trade.entryPrice + wave * 0.4; b.p = trade.entryPrice - wave * 0.6; }
+      return { a, b, c, scenario: trade.scenario || '', direction: trade.direction, result: trade.result };
+    }
+
+    function localDateKey(ts) {
+      const d = new Date((ts + tzOffsetHours * 3600) * 1000);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
+    function fmtDate(ts) {
+      const d = new Date((ts + tzOffsetHours * 3600) * 1000);
+      return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    }
+    function inActiveWindow(ts) { return activeWindow.days.has(localDateKey(ts)); }
+
+    function computeActiveWindow() {
+      const days = new Set();
+      for (const b of rawMarketData) days.add(localDateKey(b.time));
+      const sorted = [...days].sort();
+      const count = period === 'day' ? 2 : period === 'week' ? 7 : 30;
+      activeWindow.days = new Set(sorted.slice(-count));
+    }
+
+    function activeBars() {
+      computeActiveWindow();
+      const bars = rawMarketData.filter((b) => {
+        if (!inActiveWindow(b.time)) return false;
+        if (b.minuteOfDay < filterStart || b.minuteOfDay >= filterEnd) return false;
+        if (priceMin != null && b.close < priceMin) return false;
+        if (priceMax != null && b.close > priceMax) return false;
+        return true;
+      });
+      bars.sort((a, b) => a.time - b.time);
+      return bars;
+    }
+
+    function computeScale() {
+      let minP = Infinity, maxP = -Infinity;
+      for (const d of activeData) { if (d.close < minP) minP = d.close; if (d.close > maxP) maxP = d.close; }
+      if (priceMin != null) minP = priceMin;
+      if (priceMax != null) maxP = priceMax;
+      if (!isFinite(minP)) { minP = 128000; maxP = 130000; }
+      scale = { minPrice: minP, maxPrice: maxP, minMin: filterStart, maxMin: filterEnd, priceRange: (maxP - minP) || 1, minRange: (filterEnd - filterStart) || 1 };
+    }
+
+    function normTime(m) { return Math.max(0, Math.min(1, (m - scale.minMin) / scale.minRange)); }
+    function normPrice(p) { return Math.max(0, Math.min(1, (p - scale.minPrice) / scale.priceRange)); }
+    function worldX(m) { return (normTime(m) - 0.5) * PLANE_WIDTH; }
+    function worldZ(p) { return (0.5 - normPrice(p)) * PLANE_DEPTH; }
+
+    function tiltMax() { return PLANE_DEPTH * Math.tan(priceTilt * Math.PI / 180); }
+    function tiltYAt(z) { return (0.5 - z / PLANE_DEPTH) * tiltMax(); }
+
+    function sampleHeight(x, z) {
+      if (!terrainState) return 0;
+      const tx = Math.max(0, Math.min(timeBinsCount - 1, Math.floor((x / PLANE_WIDTH + 0.5) * timeBinsCount)));
+      const py = Math.max(0, Math.min(priceBinsCount - 1, Math.floor((0.5 - z / PLANE_DEPTH) * priceBinsCount)));
+      const vol = terrainState.displayGrid[tx][py];
+      return (vol / terrainState.maxCellVol) * MAX_HEIGHT * zScaleFactor;
+    }
+
+    function worldPoint(m, p, offset = 1.4) { const x = worldX(m), z = worldZ(p); return { x, y: tiltYAt(z) + sampleHeight(x, z) + offset, z }; }
+
+    function abcPoint(m, p) { return worldPoint(m, p, 1.8); }
+
+    function clearGroup(g) {
+      while (g.children.length) { const o = g.children.pop(); if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((mm) => mm.dispose()); } }
+    }
+
+    function makeTextSprite(text, color = '#94a3b8', w = 9, h = 2.25) {
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+      const ctx = cv.getContext('2d'); ctx.font = '600 24px Inter, sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 128, 32);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true })); s.scale.set(w, h, 1); return s;
+    }
+
+    function drawDayBoundaries(slice, zHalf) {
+      let prevKey = null;
+      for (let i = 0; i < slice.length; i++) {
+        const key = localDateKey(slice[i].time);
+        if (prevKey != null && key !== prevKey) {
+          const x = (i / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+          const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.1, -zHalf), new THREE.Vector3(x, 0.1, zHalf)]);
+          sceneGroup.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4 })));
+          const lbl = makeTextSprite(fmtDate(slice[i - 1].time), '#cbd5e1', 7, 1.6);
+          lbl.position.set(x, 0.3, zHalf + 1.2);
+          sceneGroup.add(lbl);
+        }
+        prevKey = key;
+      }
+    }
+
+    function buildBaseGridAndLabels(xLabels, yLabels) {
+      const base = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_DEPTH).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x090d16, side: THREE.DoubleSide }));
+      base.position.y = -0.05; sceneGroup.add(base);
+      const grid = new THREE.GridHelper(PLANE_WIDTH, 16, 0x334155, 0x1e293b); grid.position.y = -0.02; sceneGroup.add(grid);
+      const xStep = Math.max(1, Math.floor(xLabels.length / 6));
+      for (let i = 0; i < xLabels.length; i += xStep) { const s = makeTextSprite(xLabels[i], '#f43f5e'); s.position.set(((i / (xLabels.length - 1 || 1)) - 0.5) * PLANE_WIDTH, 0.5, PLANE_DEPTH / 2 + 3.5); sceneGroup.add(s); }
+      const yStep = Math.max(1, Math.floor(yLabels.length / 6));
+      for (let j = 0; j < yLabels.length; j += yStep) { const s = makeTextSprite(yLabels[j], '#34d399'); s.position.set(-PLANE_WIDTH / 2 - 4.8, 0.5, (0.5 - (j / (yLabels.length - 1 || 1))) * PLANE_DEPTH); sceneGroup.add(s); }
+    }
+
+    function buildGradientGeometry(items) {
+      const positions = [], colors = [];
+      function box(x, y, z, w, h, d, r, g, b) {
+        const hw = w / 2, hh = h / 2, hd = d / 2;
+        const c = [[-hw, -hh, -hd], [hw, -hh, -hd], [hw, hh, -hd], [-hw, hh, -hd], [-hw, -hh, hd], [hw, -hh, hd], [hw, hh, hd], [-hw, hh, hd]];
+        const f = [[0, 2, 1, 0, 3, 2], [4, 5, 6, 4, 6, 7], [0, 1, 5, 0, 5, 4], [2, 3, 7, 2, 7, 6], [0, 4, 7, 0, 7, 3], [1, 2, 6, 1, 6, 5]];
+        for (const tri of f) for (const idx of tri) { positions.push(x + c[idx][0], y + c[idx][1], z + c[idx][2]); colors.push(r, g, b); }
+      }
+      for (const it of items) {
+        const n = it.levels.length;
+        for (let k = 0; k < n; k++) {
+          const col = getThermalColor(it.levels[k]);
+          const y0 = it.yBase + (it.height * k) / n, y1 = it.yBase + (it.height * (k + 1)) / n;
+          box(it.x, (y0 + y1) / 2, it.z, it.w, y1 - y0, it.d, col.r, col.g, col.b);
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      return g;
+    }
+
+    function renderTopographicView() {
+      document.getElementById('legend-x').textContent = 'Hora do Dia';
+      document.getElementById('legend-y').textContent = 'Faixa de Preço';
+      document.getElementById('tt-label-x').textContent = 'Janela Horária:';
+      document.getElementById('tt-label-y').textContent = 'Faixa de Preço:';
+      const { minPrice, priceRange, minMin, minRange } = scale;
+      const grid = Array.from({ length: timeBinsCount }, () => Array(priceBinsCount).fill(0));
+      for (const d of activeData) {
+        let tIdx = Math.floor(((d.minuteOfDay - minMin) / minRange) * (timeBinsCount - 1));
+        let pIdx = Math.floor(((d.close - minPrice) / priceRange) * (priceBinsCount - 1));
+        tIdx = Math.max(0, Math.min(timeBinsCount - 1, tIdx));
+        pIdx = Math.max(0, Math.min(priceBinsCount - 1, pIdx));
+        grid[tIdx][pIdx] += d.volume;
+      }
+      let displayGrid = grid;
+      if (topoSubMode === 'mesh') {
+        displayGrid = Array.from({ length: timeBinsCount }, () => Array(priceBinsCount).fill(0));
+        for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) {
+          let sum = 0, ws = 0;
+          for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx >= 0 && nx < timeBinsCount && ny >= 0 && ny < priceBinsCount) { const w = (dx === 0 && dy === 0) ? 4 : (dx === 0 || dy === 0 ? 2 : 1); sum += grid[nx][ny] * w; ws += w; }
+          }
+          displayGrid[x][y] = sum / ws;
+        }
+      }
+      let maxCellVol = 0, pocX = 0, pocY = 0;
+      for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > maxCellVol) { maxCellVol = displayGrid[x][y]; pocX = x; pocY = y; }
+      maxCellVol = maxCellVol || 1;
+      terrainState = { displayGrid, maxCellVol };
+
+      const xLabels = []; for (let i = 0; i < timeBinsCount; i++) xLabels.push(fmtHM(Math.round(minMin + (i / (timeBinsCount - 1 || 1)) * minRange)));
+      const yLabels = []; for (let j = 0; j < priceBinsCount; j++) yLabels.push((minPrice + (j / (priceBinsCount - 1 || 1)) * priceRange).toFixed(0));
+      buildBaseGridAndLabels(xLabels, yLabels);
+
+      if (topoSubMode === 'mesh') {
+        const geo = new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_DEPTH, timeBinsCount - 1, priceBinsCount - 1).rotateX(-Math.PI / 2);
+        const posAttr = geo.attributes.position;
+        const colors = new Float32Array(posAttr.count * 3);
+        for (let i = 0; i < posAttr.count; i++) {
+          const ix = i % timeBinsCount, iy = Math.floor(i / timeBinsCount);
+          const py = (priceBinsCount - 1) - iy;
+          const vol = displayGrid[ix][py], nv = vol / maxCellVol;
+          posAttr.setY(i, nv * MAX_HEIGHT * zScaleFactor + tiltYAt(posAttr.getZ(i)));
+          const col = getThermalColor(nv); colors[i * 3] = col.r; colors[i * 3 + 1] = col.g; colors[i * 3 + 2] = col.b;
+        }
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geo.computeVertexNormals();
+        const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.15, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { type: 'terrain' };
+        sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+        if (showWireframe) { const w = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 })); w.position.y = 0.03; sceneGroup.add(w); }
+      } else {
+        const cellW = (PLANE_WIDTH / timeBinsCount) * 0.86, cellD = (PLANE_DEPTH / priceBinsCount) * 0.86;
+        if (showIntraBar) {
+          const items = [];
+          for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) {
+            const vol = grid[x][y]; if (vol <= 0) continue;
+            const nv = vol / maxCellVol, height = Math.max(0.25, nv * MAX_HEIGHT * zScaleFactor);
+            const levels = []; for (let k = 0; k < 8; k++) levels.push(nv * (0.25 + 0.75 * (k / 7)));
+            const zz = worldZ(minPrice + (y / (priceBinsCount - 1 || 1)) * priceRange);
+            items.push({ x: worldX(minMin + (x / (timeBinsCount - 1 || 1)) * minRange), z: zz, yBase: tiltYAt(zz), w: cellW, d: cellD, height, levels });
+          }
+          const g = buildGradientGeometry(items);
+          const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.2 }));
+          mesh.userData = { type: 'cells' };
+          sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+        } else {
+          for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) {
+            const vol = grid[x][y]; if (vol <= 0) continue;
+            const nv = vol / maxCellVol, height = Math.max(0.25, nv * MAX_HEIGHT * zScaleFactor), col = getThermalColor(nv);
+            const geo = new THREE.BoxGeometry(cellW, height, cellD).translate(0, height / 2, 0);
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, metalness: 0.2, emissive: col, emissiveIntensity: nv * 0.25 }));
+            const zz = worldZ(minPrice + (y / (priceBinsCount - 1 || 1)) * priceRange);
+            mesh.position.set(worldX(minMin + (x / (timeBinsCount - 1 || 1)) * minRange), tiltYAt(zz) + height / 2, zz);
+            mesh.userData = { type: 'cell', timeText: xLabels[x], priceText: `${minPrice + (y / priceBinsCount) * priceRange} - ${minPrice + ((y + 1) / priceBinsCount) * priceRange}`, volume: vol, normVol: nv };
+            sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+            if (showWireframe && nv > 0.15) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })); e.position.copy(mesh.position); sceneGroup.add(e); }
+          }
+        }
+      }
+      updateStats(pocX, pocY, xLabels, yLabels, maxCellVol);
+    }
+
+    function renderLinearTrailView() {
+      document.getElementById('legend-x').textContent = 'Sequência Temporal';
+      document.getElementById('legend-y').textContent = 'Preço';
+      document.getElementById('tt-label-x').textContent = 'Registro / Hora:';
+      document.getElementById('tt-label-y').textContent = 'Preço:';
+      terrainState = null;
+      const maxBars = showIntraBar ? 240 : 520;
+      const slice = activeData.slice(-maxBars);
+      if (!slice.length) return;
+      const prices = slice.map((d) => d.close), vols = slice.map((d) => d.volume);
+      const minPrice = Math.min(...prices), maxPrice = Math.max(...prices), priceRange = (maxPrice - minPrice) || 1, maxVol = Math.max(...vols) || 1;
+      const xLabels = [slice[0].timeLabel, '', '', slice[Math.floor(slice.length / 2)].timeLabel, '', '', slice[slice.length - 1].timeLabel];
+      const yLabels = [minPrice.toFixed(0), ((minPrice + maxPrice) / 2).toFixed(0), maxPrice.toFixed(0)];
+      buildBaseGridAndLabels(xLabels, yLabels);
+
+      const linePoints = [];
+      const zLocal = (p) => (0.5 - ((p - minPrice) / priceRange)) * PLANE_DEPTH;
+      if (showIntraBar) {
+        const items = [];
+        slice.forEach((d, idx) => {
+          const nv = d.volume / maxVol;
+          const height = Math.max(0.3, nv * MAX_HEIGHT * zScaleFactor);
+          const x = (idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+          const zLow = zLocal(d.low), zHigh = zLocal(d.high), zMin = Math.min(zLow, zHigh), zMax = Math.max(zLow, zHigh);
+          const span = (zMax - zMin) || 0.5, nLevels = 8;
+          const lo = d.low, hi = d.high, sigma = Math.max((hi - lo) / 4, 1);
+          const weights = []; let wsum = 0;
+          for (let k = 0; k < nLevels; k++) { const p = lo + (k + 0.5) * (hi - lo) / nLevels; const w = Math.exp(-0.5 * Math.pow((p - d.close) / sigma, 2)); weights.push(w); wsum += w; }
+          const levels = weights.map((w) => nv * (w / wsum) * nLevels * 0.5);
+          const zCenter = zMin + span / 2;
+          items.push({ x, z: zCenter, yBase: tiltYAt(zCenter), w: 0.28, d: span, height, levels });
+          linePoints.push(new THREE.Vector3(x, tiltYAt((zLow + zHigh) / 2) + 0.15, (zLow + zHigh) / 2));
+        });
+        const g = buildGradientGeometry(items);
+        const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.1 }));
+        mesh.userData = { type: 'cells' };
+        sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+      } else {
+        slice.forEach((d, idx) => {
+          const nv = d.volume / maxVol;
+          const height = Math.max(0.3, nv * MAX_HEIGHT * zScaleFactor);
+          const x = (idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+          const z = zLocal(d.close);
+          const col = getThermalColor(nv);
+          const geo = new THREE.BoxGeometry(0.28, height, 0.28).translate(0, height / 2, 0);
+          const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: nv * 0.3 }));
+          mesh.position.set(x, tiltYAt(z) + height / 2, z);
+          mesh.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: d.close.toFixed(2), volume: d.volume, normVol: nv };
+          sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+          linePoints.push(new THREE.Vector3(x, tiltYAt(z) + 0.15, z));
+        });
+      }
+      const pathGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+      sceneGroup.add(new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: COLORS.path, transparent: true, opacity: 0.7 })));
+      drawDayBoundaries(slice, PLANE_DEPTH / 2);
+      document.getElementById('stat-points').textContent = slice.length.toLocaleString('pt-BR');
+      document.getElementById('stat-price-range').textContent = `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)}`;
+      const pLabel = period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês';
+      const pel = document.getElementById('stat-period');
+      if (pel) pel.textContent = `${pLabel} · ${periodDates().join(', ')}`;
+    }
+
+    function makeArrow(direction, color, scale = 1, opts = {}) {
+      const g = new THREE.Group();
+      const mat = opts.flat
+        ? new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opts.opacity ?? 0.55 })
+        : new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.3 });
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.44, 0.95, 16), mat);
+      head.position.y = 0.55;
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.24, 1.0, 16), mat);
+      shaft.position.y = -0.15;
+      g.add(head); g.add(shaft);
+      if (!opts.flat) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.06, 10, 24), mat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = -0.66;
+        g.add(ring);
+      }
+      if (direction === 'venda') g.rotation.z = Math.PI;
+      g.scale.setScalar(scale);
+      g.userData.mat = mat;
+      return g;
+    }
+
+    function renderOverlay() {
+      clearGroup(overlayGroup);
+      activeTradeGroups = [];
+      if (viewMode !== 'topographic') return;
+      if (showABC) {
+        for (const pv of pivots) {
+          if (!inActiveWindow(pv.c.t)) continue;
+          const pts = [abcPoint(pv.a.m, pv.a.p), abcPoint(pv.b.m, pv.b.p), abcPoint(pv.c.m, pv.c.p)];
+          const dashed = pv.result !== 'gain' && pv.result !== 'stop' && pv.result !== 'active';
+          const color = COLORS.gold;
+          const pos = []; pts.forEach((p) => pos.push(p.x, p.y, p.z));
+          const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          let line;
+          if (dashed) { line = new THREE.Line(geo, new THREE.LineDashedMaterial({ color, dashSize: 1, gapSize: 0.6, transparent: true, opacity: 0.55 })); line.computeLineDistances(); }
+          else line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color }));
+          overlayGroup.add(line);
+          pts.forEach((p, idx) => { const mk = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 12), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.3 })); mk.position.set(p.x, p.y, p.z); if (idx === 2) mk.scale.setScalar(1.3); overlayGroup.add(mk); });
+        }
+      }
+      if (showTrail) {
+        for (const trade of trades) {
+          if (!inActiveWindow(trade.entryTime)) continue;
+          const g = new THREE.Group();
+          const isBuy = trade.direction === 'compra';
+          const open = !trade.exitTime;
+          const dirColor = isBuy ? COLORS.buy : COLORS.sell;
+          const pastel = isBuy ? COLORS.buyPastel : COLORS.sellPastel;
+          const entry = worldPoint(trade.entryM, trade.entryPrice);
+          const entryArrow = makeArrow(trade.direction, open ? COLORS.gold : dirColor, 0.9);
+          entryArrow.position.set(entry.x, entry.y, entry.z); g.add(entryArrow);
+
+          const pathPts = [{ m: trade.entryM, p: trade.entryPrice }];
+          if (trade.exitTime) {
+            for (const b of activeData) { if (b.time > trade.entryTime && b.time < trade.exitTime) pathPts.push({ m: b.minuteOfDay, p: b.close }); }
+            pathPts.push({ m: trade.exitM, p: trade.exitPrice });
+          } else {
+            for (const b of activeData) { if (b.time > trade.entryTime) pathPts.push({ m: b.minuteOfDay, p: b.close }); }
+          }
+          const worldPts = pathPts.map((pt) => worldPoint(pt.m, pt.p));
+          const pos = []; worldPts.forEach((p) => pos.push(p.x, p.y, p.z));
+          const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          g.add(new THREE.Line(pg, new THREE.LineBasicMaterial({ color: COLORS.gold, transparent: true, opacity: 0.95 })));
+
+          const step = Math.max(1, Math.floor(worldPts.length / 160));
+          for (let i = 1; i < worldPts.length - (open ? 1 : 0); i += step) { const p = worldPts[i]; const a = makeArrow(trade.direction, pastel, 0.32, { flat: true }); a.position.set(p.x, p.y, p.z); g.add(a); }
+
+          if (!open) { const exit = worldPoint(trade.exitM, trade.exitPrice); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); }
+          else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip }; activeTradeGroups.push(g); }
+          overlayGroup.add(g);
+        }
+      }
+    }
+
+    function periodDates() {
+      const sorted = [...activeWindow.days].sort();
+      return sorted.map((k) => { const [, m, d] = k.split('-'); return `${d}/${m}`; });
+    }
+
+    function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol) {
+      document.getElementById('stat-points').textContent = activeData.length.toLocaleString('pt-BR');
+      document.getElementById('stat-price-range').textContent = `${scale.minPrice.toFixed(0)} - ${scale.maxPrice.toFixed(0)}`;
+      document.getElementById('stat-poc').textContent = Math.round(maxCellVol).toLocaleString('pt-BR');
+      document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY]} (${xLabels[pocX]})`;
+      document.getElementById('stat-abc').textContent = `${pivots.length} / ${trades.length}`;
+      const pLabel = period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês';
+      const el = document.getElementById('stat-period');
+      if (el) el.textContent = `${pLabel} · ${periodDates().join(', ')}`;
+    }
+
+    function updateVisualization() {
+      clearGroup(sceneGroup); clearGroup(overlayGroup); interactiveMeshes = [];
+      if (!rawMarketData.length) return;
+      activeData = activeBars();
+      timeBinsCount = Math.max(2, Math.round((filterEnd - filterStart) / TIME_ZOOM[timeZoom]));
+      computeScale();
+      if (viewMode === 'topographic') renderTopographicView();
+      else renderLinearTrailView();
+      renderOverlay();
+    }
+
+    function onMouseMove(event) {
+      const rect = container.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(interactiveMeshes, false);
+      if (!hits.length) { tooltip.classList.add('hidden'); return; }
+      const obj = hits[0].object;
+      tooltip.style.left = `${Math.min(window.innerWidth - 230, event.clientX + 16)}px`;
+      tooltip.style.top = `${Math.min(window.innerHeight - 150, event.clientY + 16)}px`;
+      if (obj.userData.type === 'cells') { tooltip.classList.add('hidden'); return; }
+      tooltip.classList.remove('hidden');
+      if (obj.userData.type === 'terrain' && terrainState) {
+        const p = hits[0].point;
+        const tx = Math.max(0, Math.min(timeBinsCount - 1, Math.floor((p.x / PLANE_WIDTH + 0.5) * timeBinsCount)));
+        const py = Math.max(0, Math.min(priceBinsCount - 1, Math.floor((0.5 - p.z / PLANE_DEPTH) * priceBinsCount)));
+        const vol = terrainState.displayGrid[tx][py], nv = vol / terrainState.maxCellVol;
+        document.getElementById('tt-title').textContent = 'Superfície Topográfica';
+        document.getElementById('tt-val-x').textContent = fmtHM(Math.round(scale.minMin + (tx / (timeBinsCount - 1 || 1)) * scale.minRange));
+        document.getElementById('tt-val-y').textContent = `${(scale.minPrice + (py / priceBinsCount) * scale.priceRange).toFixed(0)} - ${(scale.minPrice + ((py + 1) / priceBinsCount) * scale.priceRange).toFixed(0)}`;
+        document.getElementById('tt-val-z').textContent = Math.round(vol).toLocaleString('pt-BR');
+        document.getElementById('tt-val-pct').textContent = `${(nv * 100).toFixed(1)}% do Pico`;
+        document.getElementById('tt-poc-badge').classList.toggle('hidden', nv < 0.78);
+      } else if (obj.userData.type === 'cell') {
+        const ud = obj.userData;
+        document.getElementById('tt-title').textContent = viewMode === 'topographic' ? 'Célula de Liquidez' : 'Ponto Temporal';
+        document.getElementById('tt-val-x').textContent = ud.timeText;
+        document.getElementById('tt-val-y').textContent = ud.priceText;
+        document.getElementById('tt-val-z').textContent = Math.round(ud.volume).toLocaleString('pt-BR');
+        document.getElementById('tt-val-pct').textContent = `${(ud.normVol * 100).toFixed(1)}% do Pico`;
+        document.getElementById('tt-poc-badge').classList.toggle('hidden', ud.normVol < 0.78);
+      }
+    }
+
+    function handleLiveMessage(msg) {
+      const type = msg.type || msg.t;
+      if (type === 'bar' || type === 'candle') {
+        const time = ts(msg.time ?? msg.ts); if (time == null) return;
+        const close = num(msg.close ?? msg.c), open = num(msg.open ?? msg.o, close), high = num(msg.high ?? msg.h, close), low = num(msg.low ?? msg.l, close), vol = num(msg.volume ?? msg.vol ?? msg.tick_volume, 0);
+        if (!isFinite(close)) return;
+        rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open, high, low, close, volume: vol });
+      } else if (type === 'pivot' || type === 'abc') {
+        const aT = ts(msg.a_time ?? msg.a?.time), bT = ts(msg.b_time ?? msg.b?.time), cT = ts(msg.c_time ?? msg.c?.time);
+        if ([aT, bT, cT].some((x) => x == null)) return;
+        pivots.push({ a: { t: aT, m: todMin(aT), p: num(msg.a_price ?? msg.a?.price) }, b: { t: bT, m: todMin(bT), p: num(msg.b_price ?? msg.b?.price) }, c: { t: cT, m: todMin(cT), p: num(msg.c_price ?? msg.c?.price) }, scenario: msg.scenario || '', direction: dirFrom(msg.direction ?? msg.side), result: resultFrom(msg.result, num(msg.result_r)) });
+      } else if (type === 'trade') {
+        const entryTime = ts(msg.entry_time); if (entryTime == null) return;
+        const existing = trades.find((t) => t.id === msg.id);
+        if (existing) { existing.exitTime = ts(msg.exit_time) ?? null; existing.exitM = existing.exitTime ? todMin(existing.exitTime) : null; existing.exitPrice = num(msg.exit_price, existing.exitPrice); if (msg.result) existing.result = resultFrom(msg.result, num(msg.result_r)); }
+        else trades.push({ id: msg.id ?? `ws${entryTime}`, direction: dirFrom(msg.direction ?? msg.side), scenario: msg.scenario || '', entryTime, entryM: todMin(entryTime), entryPrice: num(msg.entry ?? msg.entry_price), exitTime: ts(msg.exit_time) ?? null, exitM: ts(msg.exit_time) != null ? todMin(ts(msg.exit_time)) : null, exitPrice: num(msg.exit_price), result: msg.result ? resultFrom(msg.result, num(msg.result_r)) : null });
+      }
+      updateVisualization();
+    }
+
+    function connectWS() {
+      const url = document.getElementById('ws-url').value.trim() || 'ws://localhost:8000/ws';
+      if (ws) { ws.close(); ws = null; }
+      try { ws = new WebSocket(url); } catch { showToast('WebSocket inválido.', true); return; }
+      document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+      document.getElementById('badge-text').textContent = `WS conectando…`;
+      setBadge('live');
+      ws.onopen = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${url}`; showToast('WebSocket conectado.'); };
+      ws.onclose = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; document.getElementById('badge-text').textContent = 'WS desconectado'; };
+      ws.onerror = () => { document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
+      ws.onmessage = (ev) => { try { handleLiveMessage(JSON.parse(ev.data)); } catch { /* ignore */ } };
+    }
+
+    function wireEvents() {
+      document.getElementById('mode-topo').addEventListener('click', () => { viewMode = 'topographic'; styleBtn('mode-topo', 'mode-trail'); document.getElementById('topo-style-group').classList.remove('hidden'); document.getElementById('grid-res-group').classList.remove('hidden'); document.getElementById('badge-mode').textContent = 'Topográfico'; updateVisualization(); });
+      document.getElementById('mode-trail').addEventListener('click', () => { viewMode = 'trail'; styleBtn('mode-trail', 'mode-topo'); document.getElementById('topo-style-group').classList.add('hidden'); document.getElementById('grid-res-group').classList.add('hidden'); document.getElementById('badge-mode').textContent = 'Trilha Linear'; updateVisualization(); });
+      document.getElementById('submode-mesh').addEventListener('click', () => { topoSubMode = 'mesh'; styleBtn('submode-mesh', 'submode-bars'); updateVisualization(); });
+      document.getElementById('submode-bars').addEventListener('click', () => { topoSubMode = 'bars'; styleBtn('submode-bars', 'submode-mesh'); updateVisualization(); });
+      document.getElementById('slider-price-bins').addEventListener('input', (e) => { priceBinsCount = parseInt(e.target.value, 10); document.getElementById('val-price-bins').textContent = `${priceBinsCount} faixas`; updateVisualization(); });
+      document.getElementById('slider-time-zoom').addEventListener('input', (e) => { timeZoom = parseInt(e.target.value, 10); document.getElementById('val-time-zoom').textContent = `${TIME_ZOOM[timeZoom]} min`; updateVisualization(); });
+      document.getElementById('slider-price-tilt').addEventListener('input', (e) => { priceTilt = parseInt(e.target.value, 10); document.getElementById('val-price-tilt').textContent = `${priceTilt}°`; updateVisualization(); });
+      document.getElementById('slider-z-scale').addEventListener('input', (e) => { zScaleFactor = parseFloat(e.target.value); document.getElementById('val-z-scale').textContent = `${zScaleFactor.toFixed(1)}x`; updateVisualization(); });
+      document.getElementById('toggle-wireframe').addEventListener('change', (e) => { showWireframe = e.target.checked; updateVisualization(); });
+      document.getElementById('toggle-intrabar').addEventListener('change', (e) => { showIntraBar = e.target.checked; updateVisualization(); });
+      document.getElementById('toggle-abc').addEventListener('change', (e) => { showABC = e.target.checked; renderOverlay(); });
+      document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
+      document.getElementById('period-day').addEventListener('click', () => { period = 'day'; stylePeriod('period-day'); updateVisualization(); });
+      document.getElementById('period-week').addEventListener('click', () => { period = 'week'; stylePeriod('period-week'); updateVisualization(); });
+      document.getElementById('period-month').addEventListener('click', () => { period = 'month'; stylePeriod('period-month'); updateVisualization(); });
+      document.getElementById('btn-filters').addEventListener('click', applyFilters);
+      document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
+      document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
+      document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
+      document.getElementById('btn-load-mock').addEventListener('click', () => { if (ws) { ws.close(); ws = null; } rawMarketData = generateSimulatedData(); updateVisualization(); showToast('Novos dados simulados de 30 pregões gerados!'); });
+      document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files); if (!files.length) return;
+        rawMarketData = []; pivots = []; trades = [];
+        let pending = files.length;
+        files.forEach((f) => { const r = new FileReader(); r.onload = () => { parseCSV(String(r.result)); if (--pending === 0) updateVisualization(); }; r.readAsText(f); });
+        e.target.value = '';
+      });
+      document.getElementById('btn-ws').addEventListener('click', connectWS);
+      const helpModal = document.getElementById('help-modal');
+      document.getElementById('btn-help').addEventListener('click', () => helpModal.classList.remove('hidden'));
+      document.getElementById('btn-close-modal').addEventListener('click', () => helpModal.classList.add('hidden'));
+      document.getElementById('btn-got-it').addEventListener('click', () => helpModal.classList.add('hidden'));
+    }
+
+    function styleBtn(active, inactive) {
+      const a = document.getElementById(active), b = document.getElementById(inactive);
+      a.className = a.className.replace('text-slate-400', '').replace('text-indigo-300', '');
+      if (active.startsWith('submode')) { a.className = 'py-1.5 px-2 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1.5'; b.className = 'py-1.5 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5'; }
+      else { a.className = 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'; b.className = 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5'; }
+    }
+
+    function stylePeriod(active) {
+      ['period-day', 'period-week', 'period-month'].forEach((id) => {
+        const b = document.getElementById(id);
+        b.className = id === active
+          ? 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'
+          : 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5';
+      });
+    }
+
+    function applyFilters() {
+      const s = document.getElementById('f-start').value;
+      const e = document.getElementById('f-end').value;
+      if (s) { const [h, m] = s.split(':').map(Number); filterStart = h * 60 + m; }
+      if (e) { const [h, m] = e.split(':').map(Number); filterEnd = h * 60 + m; }
+      const pmin = document.getElementById('f-pmin').value.trim();
+      const pmax = document.getElementById('f-pmax').value.trim();
+      priceMin = pmin === '' ? null : Number(pmin);
+      priceMax = pmax === '' ? null : Number(pmax);
+      updateVisualization();
+      showToast('Filtros aplicados.');
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = performance.now() / 1000;
+      for (const g of activeTradeGroups) {
+        const a = g.userData.active; if (!a) continue;
+        const pulse = 1 + Math.sin(t * 6) * 0.16;
+        a.entryArrow.scale.setScalar(1.15 * pulse);
+        const m = a.entryArrow.userData.mat;
+        if (m && m.emissiveIntensity !== undefined) m.emissiveIntensity = 0.5 + Math.sin(t * 6) * 0.3;
+        a.sphere.scale.setScalar(1 + Math.sin(t * 6) * 0.35);
+        a.sphere.position.y = a.tip.y + Math.sin(t * 6) * 0.9;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    initThree();
+    rawMarketData = generateSimulatedData();
+    wireEvents();
+    updateVisualization();
+    animate();
+  </script>
+</body>
+</html>
