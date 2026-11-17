@@ -36,6 +36,9 @@
     details.cv-acc[open] summary .cv-chev { transform: rotate(90deg); }
     details.cv-acc summary:hover { background: rgba(255,255,255,0.04); }
     details.cv-acc .cv-acc-body { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px; }
+    .fib-level { padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #64748b; font-size: 10px; cursor: pointer; transition: all .15s ease; }
+    .fib-level:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
+    .fib-level.cv-active-chip { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
@@ -231,6 +234,36 @@
         </details>
 
         <details class="cv-acc">
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-ruler-combined text-amber-400"></i> Geometria &amp; Fibonacci</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <div class="cv-acc-body">
+            <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+              <button id="fib-retrace" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Retração</button>
+              <button id="fib-extension" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Expansão</button>
+              <button id="fib-golden" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Φ Áurea</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+              <button id="fib-axis-volume" class="py-1.5 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition">Volume (Z)</button>
+              <button id="fib-axis-price" class="py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition">Preço (Y)</button>
+              <button id="fib-axis-time" class="py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition">Tempo (X)</button>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              <button class="fib-level cv-active-chip" data-level="0.382">38.2%</button>
+              <button class="fib-level cv-active-chip" data-level="0.5">50%</button>
+              <button class="fib-level cv-active-chip" data-level="0.618">61.8%</button>
+              <button class="fib-level cv-active-chip" data-level="1.0">100%</button>
+              <button class="fib-level" data-level="1.272">127.2%</button>
+              <button class="fib-level" data-level="1.618">161.8%</button>
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-slate-300"><span>Opacidade</span><span id="val-fib-opacity" class="font-mono text-amber-400 font-semibold">40%</span></div>
+              <input type="range" id="fib-opacity" min="0.05" max="0.9" step="0.05" value="0.4" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+            <button id="fib-clear" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-eraser text-amber-400"></i> Limpar Fibonacci</button>
+            <p class="text-[10px] text-slate-500 leading-relaxed">Clique em <b class="text-slate-400">2 pontos</b> na malha (ex: base de um vale e topo de um cume) para ancorar os níveis.</p>
+          </div>
+        </details>
+
+        <details class="cv-acc">
           <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-satellite-dish text-indigo-400"></i> Tempo Real (WebSocket)</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
             <div id="ws-status" class="flex items-center gap-2 text-[11px] text-slate-400"><span id="ws-status-dot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="ws-status-text">Offline</span></div>
@@ -275,6 +308,14 @@
     const PLANE_WIDTH = 64, PLANE_DEPTH = 64, MAX_HEIGHT = 26;
     const SESSION_START = 540, SESSION_END = 1080;
     const COLORS = { gain: 0x00ff88, stop: 0xff3366, active: 0x22d3ee, buy: 0x0088ff, sell: 0xff1e42, gold: 0xffd700, buyPastel: 0x55718f, sellPastel: 0x9a6a6a, gray: 0x666666, path: 0x6366f1 };
+    const FIB_LEVELS = [
+      { key: '0.382', label: '38.2%', value: 0.382, color: 0x38bdf8 },
+      { key: '0.5', label: '50%', value: 0.5, color: 0x818cf8 },
+      { key: '0.618', label: '61.8%', value: 0.618, color: 0xc084fc },
+      { key: '1.0', label: '100%', value: 1.0, color: 0xe2e8f0 },
+      { key: '1.272', label: '127.2%', value: 1.272, color: 0xfbbf24 },
+      { key: '1.618', label: '161.8% Φ', value: 1.618, color: 0xffd700 },
+    ];
 
     let viewMode = 'topographic';
     let topoSubMode = 'mesh';
@@ -302,6 +343,11 @@
     let maPeriod = 20;
     let showPOC = true;
     let showMA = true;
+    let fibTool = 'none';
+    let fibAxis = 'volume';
+    let fibAnchors = [];
+    let fibLevels = new Set(['0.382', '0.5', '0.618', '1.0']);
+    let fibOpacity = 0.4;
 
     let rawMarketData = [];
     let pivots = [];
@@ -358,6 +404,8 @@
       window.addEventListener('resize', onWindowResize);
       container.addEventListener('mousemove', onMouseMove);
       container.addEventListener('mouseleave', () => tooltip.classList.add('hidden'));
+      container.addEventListener('pointerdown', onPointerDown);
+      container.addEventListener('click', onPointerClick);
       setCameraPreset('iso');
     }
 
@@ -623,6 +671,10 @@
 
     function tiltMax() { return PLANE_DEPTH * Math.tan(priceTilt * Math.PI / 180); }
     function tiltYAt(z) { return (0.5 - z / PLANE_DEPTH) * tiltMax(); }
+
+    function priceFromZ(z) { return scale.minPrice + (0.5 - z / PLANE_DEPTH) * scale.priceRange; }
+    function timeFromX(x) { return scale.minMin + (x / PLANE_WIDTH + 0.5) * scale.minRange; }
+    function hexStr(hex) { return '#' + hex.toString(16).padStart(6, '0'); }
 
     function sampleHeight(x, z) {
       if (!terrainState) return 0;
@@ -959,6 +1011,58 @@
       g.add(ring);
     }
 
+    function fibAnchorValue(a) {
+      if (fibAxis === 'volume') return a.volume ?? (a.y - tiltYAt(a.z));
+      if (fibAxis === 'price') return a.price ?? priceFromZ(a.z);
+      return a.minuteOfDay ?? timeFromX(a.x);
+    }
+
+    function renderFibonacci() {
+      if (fibTool === 'none') return;
+      for (const a of fibAnchors) {
+        const mk = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
+        mk.position.set(a.x, a.y, a.z);
+        overlayGroup.add(mk);
+      }
+      if (fibAnchors.length < 2) return;
+      const [A, B] = fibAnchors;
+      const va = fibAnchorValue(A);
+      const vb = fibAnchorValue(B);
+      const span = vb - va;
+      const h = tiltMax() + MAX_HEIGHT * zScaleFactor + 2;
+
+      for (const lv of FIB_LEVELS) {
+        if (!fibLevels.has(lv.key)) continue;
+        const v = va + lv.value * span;
+        const col = hexStr(lv.color);
+        const mat = new THREE.MeshBasicMaterial({ color: lv.color, transparent: true, opacity: fibOpacity, side: THREE.DoubleSide, depthWrite: false });
+        if (fibAxis === 'volume') {
+          const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_DEPTH).rotateX(-Math.PI / 2), mat);
+          plane.position.set(0, v, 0);
+          overlayGroup.add(plane);
+          const lbl = makeTextSprite(lv.label, col, 6, 1.4);
+          lbl.position.set(PLANE_WIDTH / 2 + 3, v, 0);
+          overlayGroup.add(lbl);
+        } else if (fibAxis === 'price') {
+          const z = worldZ(v);
+          const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, h), mat);
+          plane.position.set(0, h / 2, z);
+          overlayGroup.add(plane);
+          const lbl = makeTextSprite(`${lv.label} · ${Math.round(v)}`, col, 6, 1.4);
+          lbl.position.set(PLANE_WIDTH / 2 + 3, 0.6, z);
+          overlayGroup.add(lbl);
+        } else {
+          const x = worldX(v);
+          const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_DEPTH, h).rotateY(Math.PI / 2), mat);
+          plane.position.set(x, h / 2, 0);
+          overlayGroup.add(plane);
+          const lbl = makeTextSprite(`${lv.label} · ${fmtHM(Math.round(v))}`, col, 6, 1.4);
+          lbl.position.set(x, h + 1, PLANE_DEPTH / 2 + 2);
+          overlayGroup.add(lbl);
+        }
+      }
+    }
+
     function renderReferenceLine() {
       const price = refPrice ?? pocPrice;
       if (!showPOC || price == null) return;
@@ -1010,6 +1114,7 @@
         }
       }
       renderReferenceLine();
+      renderFibonacci();
     }
 
     function periodDates() {
@@ -1076,6 +1181,27 @@
         document.getElementById('tt-val-pct').textContent = `${(ud.normVol * 100).toFixed(1)}% do Pico`;
         document.getElementById('tt-poc-badge').classList.toggle('hidden', ud.normVol < 0.78);
       }
+    }
+
+    let pointerDownPos = null;
+    function onPointerDown(event) {
+      pointerDownPos = { x: event.clientX, y: event.clientY };
+    }
+
+    function onPointerClick(event) {
+      if (fibTool === 'none') return;
+      if (pointerDownPos && Math.abs(event.clientX - pointerDownPos.x) + Math.abs(event.clientY - pointerDownPos.y) > 6) return;
+      const rect = container.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(interactiveMeshes, false);
+      if (!hits.length) return;
+      const p = hits[0].point;
+      if (fibAnchors.length >= 2) fibAnchors = [];
+      fibAnchors.push({ x: p.x, y: p.y, z: p.z, minuteOfDay: timeFromX(p.x), price: priceFromZ(p.z), volume: p.y - tiltYAt(p.z) });
+      renderOverlay();
+      showToast(fibAnchors.length === 1 ? 'Ponto 1 definido — clique no 2º (cume ou vale).' : 'Fibonacci ancorado. Clique de novo para recomeçar.');
     }
 
     function handleLiveMessage(msg) {
@@ -1162,6 +1288,20 @@
         e.target.value = '';
       });
       document.getElementById('btn-ws').addEventListener('click', connectWS);
+      document.getElementById('fib-retrace').addEventListener('click', () => setFibTool(fibTool === 'retrace' ? 'none' : 'retrace'));
+      document.getElementById('fib-extension').addEventListener('click', () => setFibTool(fibTool === 'extension' ? 'none' : 'extension'));
+      document.getElementById('fib-golden').addEventListener('click', () => setFibTool(fibTool === 'golden' ? 'none' : 'golden'));
+      document.getElementById('fib-axis-volume').addEventListener('click', () => setFibAxis('volume'));
+      document.getElementById('fib-axis-price').addEventListener('click', () => setFibAxis('price'));
+      document.getElementById('fib-axis-time').addEventListener('click', () => setFibAxis('time'));
+      document.querySelectorAll('.fib-level').forEach((b) => b.addEventListener('click', () => {
+        const k = b.dataset.level;
+        if (fibLevels.has(k)) fibLevels.delete(k); else fibLevels.add(k);
+        syncFibUI();
+        renderOverlay();
+      }));
+      document.getElementById('fib-opacity').addEventListener('input', (e) => { fibOpacity = parseFloat(e.target.value); document.getElementById('val-fib-opacity').textContent = `${Math.round(fibOpacity * 100)}%`; renderOverlay(); });
+      document.getElementById('fib-clear').addEventListener('click', () => { fibAnchors = []; fibTool = 'none'; syncFibUI(); renderOverlay(); });
       const helpModal = document.getElementById('help-modal');
       document.getElementById('btn-help').addEventListener('click', () => helpModal.classList.remove('hidden'));
       document.getElementById('btn-close-modal').addEventListener('click', () => helpModal.classList.add('hidden'));
@@ -1181,6 +1321,46 @@
         b.className = id === active
           ? 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'
           : 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5';
+      });
+    }
+
+    function setFibTool(tool) {
+      fibTool = tool;
+      fibAnchors = [];
+      if (tool === 'retrace') fibLevels = new Set(['0.382', '0.5', '0.618', '1.0']);
+      else if (tool === 'extension') fibLevels = new Set(['1.0', '1.272', '1.618']);
+      else if (tool === 'golden') fibLevels = new Set(['0.618', '1.618']);
+      else fibLevels = new Set();
+      syncFibUI();
+      renderOverlay();
+      if (tool !== 'none') showToast('Ferramenta ativa — clique em 2 pontos na malha.');
+    }
+
+    function setFibAxis(axis) {
+      fibAxis = axis;
+      const axisBtns = [['fib-axis-volume', 'Volume (Z)'], ['fib-axis-price', 'Preço (Y)'], ['fib-axis-time', 'Tempo (X)']];
+      axisBtns.forEach(([id]) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        const active = (id === 'fib-axis-' + axis);
+        b.className = active
+          ? 'py-1.5 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition'
+          : 'py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition';
+      });
+      renderOverlay();
+    }
+
+    function syncFibUI() {
+      const tools = [['fib-retrace', 'retrace'], ['fib-extension', 'extension'], ['fib-golden', 'golden']];
+      tools.forEach(([id, tool]) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.className = fibTool === tool
+          ? 'py-2 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1'
+          : 'py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1';
+      });
+      document.querySelectorAll('.fib-level').forEach((b) => {
+        b.classList.toggle('cv-active-chip', fibLevels.has(b.dataset.level));
       });
     }
 
