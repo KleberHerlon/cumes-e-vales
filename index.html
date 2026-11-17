@@ -92,7 +92,7 @@
         </div>
         <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[10px] text-slate-400 flex items-center gap-2 shadow-lg">
           <span>Baixo Vol</span>
-          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #1e293b 0%, #3b82f6 25%, #06b6d4 40%, #10b981 55%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
+          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #334155 0%, #3b82f6 30%, #06b6d4 50%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
           <span class="text-amber-400 font-semibold">POC (Pico)</span>
           <span class="mx-2 text-slate-600">|</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]"></span> Onda ABC</span>
@@ -175,6 +175,11 @@
             <button id="btn-ref-poc" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-medium rounded-lg border border-slate-700 transition whitespace-nowrap">POC</button>
           </div>
           <button id="btn-ref-clear" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-eraser text-cyan-400"></i> Limpar linha</button>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Média Móvel (Trilha Linear)</div>
+          <input id="ma-period" type="number" value="20" min="0" placeholder="período (0 = desligada)" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-amber-500">
         </div>
 
         <div class="space-y-1.5">
@@ -296,6 +301,7 @@
     let dateFrom = null;
     let dateTo = null;
     let pocPrice = null;
+    let maPeriod = 20;
 
     let rawMarketData = [];
     let pivots = [];
@@ -370,8 +376,8 @@
 
     function getThermalColor(t) {
       const stops = [
-        [0.00, 0x1e293b], [0.20, 0x3b82f6], [0.40, 0x06b6d4],
-        [0.55, 0x10b981], [0.70, 0xfbbf24], [0.85, 0xf97316], [1.00, 0xef4444],
+        [0.00, 0x334155], [0.25, 0x3b82f6], [0.50, 0x06b6d4],
+        [0.70, 0xfbbf24], [0.85, 0xf97316], [1.00, 0xef4444],
       ];
       t = Math.max(0, Math.min(1, t));
       let a = stops[0], b = stops[stops.length - 1];
@@ -566,6 +572,17 @@
         const count = period === 'day' ? 2 : period === 'week' ? 7 : 30;
         activeWindow.days = new Set(sorted.slice(-count));
       }
+    }
+
+    function updateDateInputs() {
+      const days = new Set();
+      for (const b of rawMarketData) days.add(localDateKey(b.time));
+      const sorted = [...days].sort();
+      if (!sorted.length) return;
+      const elFrom = document.getElementById('f-date-from');
+      const elTo = document.getElementById('f-date-to');
+      if (elFrom && !elFrom.value) elFrom.value = sorted[0];
+      if (elTo && !elTo.value) elTo.value = sorted[sorted.length - 1];
     }
 
     function activeBars() {
@@ -819,6 +836,34 @@
       }
       const pathGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
       sceneGroup.add(new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: COLORS.path, transparent: true, opacity: 0.7 })));
+
+      if (refPrice != null && refPrice >= minPrice && refPrice <= maxPrice) {
+        const zr = zLocal(refPrice);
+        const rg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(zr) + 0.5, zr), new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(zr) + 0.5, zr)]);
+        sceneGroup.add(new THREE.Line(rg, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.85 })));
+        const rl = makeTextSprite(String(Math.round(refPrice)), '#22d3ee', 6, 1.4);
+        rl.position.set(PLANE_WIDTH / 2 + 3, 0.6, zr);
+        sceneGroup.add(rl);
+      }
+      if (maPeriod > 1 && slice.length > maPeriod) {
+        const maPoints = [];
+        let sum = 0;
+        for (let i = 0; i < slice.length; i++) {
+          sum += slice[i].close;
+          if (i >= maPeriod) sum -= slice[i - maPeriod].close;
+          if (i >= maPeriod - 1) {
+            const ma = sum / maPeriod;
+            const x = (i / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+            const z = zLocal(ma);
+            maPoints.push(new THREE.Vector3(x, tiltYAt(z) + 0.6, z));
+          }
+        }
+        if (maPoints.length > 1) {
+          const mg = new THREE.BufferGeometry().setFromPoints(maPoints);
+          sceneGroup.add(new THREE.Line(mg, new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9 })));
+        }
+      }
+
       drawDayBoundaries(slice, PLANE_DEPTH / 2);
       document.getElementById('stat-points').textContent = slice.length.toLocaleString('pt-BR');
       document.getElementById('stat-price-range').textContent = `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)}`;
@@ -984,6 +1029,7 @@
       activeData = activeBars();
       timeBinsCount = Math.max(2, Math.round((filterEnd - filterStart) / TIME_ZOOM[timeZoom]));
       computeScale();
+      updateDateInputs();
       if (viewMode === 'topographic') renderTopographicView();
       else renderLinearTrailView();
       renderOverlay();
@@ -1076,7 +1122,8 @@
       document.getElementById('vol-filter').addEventListener('change', (e) => { volumeFilter = e.target.value; updateVisualization(); });
       document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); renderOverlay(); });
       document.getElementById('btn-ref-poc').addEventListener('click', () => { if (pocPrice != null) { refPrice = pocPrice; document.getElementById('ref-price').value = Math.round(pocPrice); renderOverlay(); } });
-      document.getElementById('btn-ref-clear').addEventListener('click', () => { refPrice = null; document.getElementById('ref-price').value = ''; renderOverlay(); });
+      document.getElementById('btn-ref-clear').addEventListener('click', () => { refPrice = null; document.getElementById('ref-price').value = ''; renderOverlay(); updateVisualization(); });
+      document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(0, Number(e.target.value) || 0); updateVisualization(); });
       document.getElementById('f-date-from').addEventListener('change', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
       document.getElementById('f-date-to').addEventListener('change', (e) => { dateTo = e.target.value || null; updateVisualization(); });
       document.getElementById('btn-clear-dates').addEventListener('click', () => { dateFrom = null; dateTo = null; document.getElementById('f-date-from').value = ''; document.getElementById('f-date-to').value = ''; updateVisualization(); });
