@@ -576,14 +576,22 @@
     }
 
     function updateDateInputs() {
-      const days = new Set();
-      for (const b of rawMarketData) days.add(localDateKey(b.time));
-      const sorted = [...days].sort();
+      if (dateFrom || dateTo) return;
+      const sorted = [...activeWindow.days].sort();
       if (!sorted.length) return;
       const elFrom = document.getElementById('f-date-from');
       const elTo = document.getElementById('f-date-to');
-      if (elFrom && !elFrom.value) elFrom.value = sorted[0];
-      if (elTo && !elTo.value) elTo.value = sorted[sorted.length - 1];
+      if (elFrom) elFrom.value = sorted[0];
+      if (elTo) elTo.value = sorted[sorted.length - 1];
+    }
+
+    function clearDateFilter() {
+      dateFrom = null;
+      dateTo = null;
+      const elFrom = document.getElementById('f-date-from');
+      const elTo = document.getElementById('f-date-to');
+      if (elFrom) elFrom.value = '';
+      if (elTo) elTo.value = '';
     }
 
     function activeBars() {
@@ -876,9 +884,9 @@
       drawDayBoundaries(slice, PLANE_DEPTH / 2);
       document.getElementById('stat-points').textContent = slice.length.toLocaleString('pt-BR');
       document.getElementById('stat-price-range').textContent = `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)}`;
-      const pLabel = period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês';
+      const pLabel = (dateFrom || dateTo) ? 'Datas' : (period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês');
       const pel = document.getElementById('stat-period');
-      if (pel) pel.textContent = `${pLabel} · ${periodDates().join(', ')}`;
+      if (pel) pel.textContent = `${pLabel} · ${periodDates()}`;
     }
 
     function makeArrowShape() {
@@ -1006,7 +1014,11 @@
 
     function periodDates() {
       const sorted = [...activeWindow.days].sort();
-      return sorted.map((k) => { const [, m, d] = k.split('-'); return `${d}/${m}`; });
+      const fmt = (k) => { const [, m, d] = k.split('-'); return `${d}/${m}`; };
+      if (!sorted.length) return '';
+      if (sorted.length === 1) return fmt(sorted[0]);
+      if (sorted.length <= 4) return sorted.map(fmt).join(', ');
+      return `${fmt(sorted[0])} … ${fmt(sorted[sorted.length - 1])}`;
     }
 
     function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol) {
@@ -1015,9 +1027,9 @@
       document.getElementById('stat-poc').textContent = Math.round(maxCellVol).toLocaleString('pt-BR');
       document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY]} (${xLabels[pocX]})`;
       document.getElementById('stat-abc').textContent = `${trades.length} (${trades.filter((t) => t.result === 'gain').length}G/${trades.filter((t) => t.result === 'stop').length}S)`;
-      const pLabel = period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês';
+      const pLabel = (dateFrom || dateTo) ? 'Datas' : (period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês');
       const el = document.getElementById('stat-period');
-      if (el) el.textContent = `${pLabel} · ${periodDates().join(', ')}`;
+      if (el) el.textContent = `${pLabel} · ${periodDates()}`;
     }
 
     function updateVisualization() {
@@ -1113,23 +1125,23 @@
       document.getElementById('toggle-poc').addEventListener('change', (e) => { showPOC = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-ma').addEventListener('change', (e) => { showMA = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
-      document.getElementById('period-day').addEventListener('click', () => { period = 'day'; stylePeriod('period-day'); updateVisualization(); });
-      document.getElementById('period-week').addEventListener('click', () => { period = 'week'; stylePeriod('period-week'); updateVisualization(); });
-      document.getElementById('period-month').addEventListener('click', () => { period = 'month'; stylePeriod('period-month'); updateVisualization(); });
+      document.getElementById('period-day').addEventListener('click', () => { period = 'day'; clearDateFilter(); stylePeriod('period-day'); updateVisualization(); });
+      document.getElementById('period-week').addEventListener('click', () => { period = 'week'; clearDateFilter(); stylePeriod('period-week'); updateVisualization(); });
+      document.getElementById('period-month').addEventListener('click', () => { period = 'month'; clearDateFilter(); stylePeriod('period-month'); updateVisualization(); });
       document.getElementById('btn-filters').addEventListener('click', applyFilters);
       document.getElementById('vol-filter').addEventListener('change', (e) => { volumeFilter = e.target.value; updateVisualization(); });
       document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
-      document.getElementById('f-date-from').addEventListener('change', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
-      document.getElementById('f-date-to').addEventListener('change', (e) => { dateTo = e.target.value || null; updateVisualization(); });
-      document.getElementById('btn-clear-dates').addEventListener('click', () => { dateFrom = null; dateTo = null; document.getElementById('f-date-from').value = ''; document.getElementById('f-date-to').value = ''; updateVisualization(); });
+      document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
+      document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; updateVisualization(); });
+      document.getElementById('btn-clear-dates').addEventListener('click', () => { clearDateFilter(); updateVisualization(); });
       document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
       document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
       document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
-      document.getElementById('btn-load-mock').addEventListener('click', () => { if (ws) { ws.close(); ws = null; } rawMarketData = generateSimulatedData(); updateVisualization(); showToast('Novos dados simulados de 30 pregões gerados!'); });
+      document.getElementById('btn-load-mock').addEventListener('click', () => { if (ws) { ws.close(); ws = null; } clearDateFilter(); rawMarketData = generateSimulatedData(); updateVisualization(); showToast('Novos dados simulados de 30 pregões gerados!'); });
       document.getElementById('csv-file-input').addEventListener('change', (e) => {
         const files = Array.from(e.target.files); if (!files.length) return;
-        rawMarketData = []; pivots = []; trades = [];
+        rawMarketData = []; pivots = []; trades = []; clearDateFilter();
         let pending = files.length;
         files.forEach((f) => { const r = new FileReader(); r.onload = () => { parseCSV(String(r.result)); if (--pending === 0) updateVisualization(); }; r.readAsText(f); });
         e.target.value = '';
