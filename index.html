@@ -92,7 +92,7 @@
         </div>
         <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[10px] text-slate-400 flex items-center gap-2 shadow-lg">
           <span>Baixo Vol</span>
-          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #0f172a 0%, #1d4ed8 25%, #06b6d4 50%, #f59e0b 75%, #ef4444 100%);"></div>
+          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #1e293b 0%, #3b82f6 25%, #06b6d4 40%, #10b981 55%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
           <span class="text-amber-400 font-semibold">POC (Pico)</span>
           <span class="mx-2 text-slate-600">|</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]"></span> Onda ABC</span>
@@ -369,12 +369,18 @@
     }
 
     function getThermalColor(t) {
+      const stops = [
+        [0.00, 0x1e293b], [0.20, 0x3b82f6], [0.40, 0x06b6d4],
+        [0.55, 0x10b981], [0.70, 0xfbbf24], [0.85, 0xf97316], [1.00, 0xef4444],
+      ];
+      t = Math.max(0, Math.min(1, t));
+      let a = stops[0], b = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+      }
+      const f = (t - a[0]) / ((b[0] - a[0]) || 1);
       const c = new THREE.Color();
-      if (t < 0.05) c.setHex(0x0f172a);
-      else if (t < 0.25) { const l = (t - 0.05) / 0.20; c.setRGB(0.06 + l * 0.05, 0.12 + l * 0.28, 0.28 + l * 0.58); }
-      else if (t < 0.50) { const l = (t - 0.25) / 0.25; c.setRGB(0.11 - l * 0.07, 0.40 + l * 0.42, 0.86 - l * 0.16); }
-      else if (t < 0.78) { const l = (t - 0.50) / 0.28; c.setRGB(0.04 + l * 0.94, 0.82 - l * 0.14, 0.70 - l * 0.62); }
-      else { const l = (t - 0.78) / 0.22; c.setRGB(0.98, 0.68 - l * 0.48, 0.08 + l * 0.07); }
+      c.setHex(a[1]).lerp(new THREE.Color(b[1]), f);
       return c;
     }
 
