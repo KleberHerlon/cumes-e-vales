@@ -744,18 +744,28 @@
         mesh.userData = { type: 'cells' };
         sceneGroup.add(mesh); interactiveMeshes.push(mesh);
       } else {
+        const bullCol = 0x00e07f, bearCol = 0xff3b5c;
+        const spacing = PLANE_WIDTH / (slice.length - 1 || 1);
+        const bodyW = Math.min(0.5, spacing * 0.7);
+        const wickW = Math.min(0.16, spacing * 0.22);
         slice.forEach((d, idx) => {
           const nv = d.volume / maxVol;
-          const height = Math.max(0.3, nv * MAX_HEIGHT * zScaleFactor);
+          const height = Math.max(0.4, nv * MAX_HEIGHT * zScaleFactor);
           const x = (idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
-          const z = zLocal(d.close);
-          const col = getThermalColor(nv);
-          const geo = new THREE.BoxGeometry(0.28, height, 0.28).translate(0, height / 2, 0);
-          const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: nv * 0.3 }));
-          mesh.position.set(x, tiltYAt(z) + height / 2, z);
-          mesh.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: d.close.toFixed(2), volume: d.volume, normVol: nv };
-          sceneGroup.add(mesh); interactiveMeshes.push(mesh);
-          linePoints.push(new THREE.Vector3(x, tiltYAt(z) + 0.15, z));
+          const zO = zLocal(d.open), zC = zLocal(d.close), zH = zLocal(d.high), zL = zLocal(d.low);
+          const bull = d.close >= d.open;
+          const col = bull ? bullCol : bearCol;
+          const zTop = Math.max(zO, zC), zBot = Math.min(zO, zC);
+          const bodyLen = Math.max(0.16, zTop - zBot);
+          const wickLen = Math.max(0.06, zH - zL);
+          const wick = new THREE.Mesh(new THREE.BoxGeometry(wickW, height, wickLen).translate(0, height / 2, 0), new THREE.MeshStandardMaterial({ color: col, roughness: 0.4, emissive: col, emissiveIntensity: 0.22 }));
+          wick.position.set(x, tiltYAt((zH + zL) / 2) + height / 2, (zH + zL) / 2);
+          sceneGroup.add(wick);
+          const body = new THREE.Mesh(new THREE.BoxGeometry(bodyW, height, bodyLen).translate(0, height / 2, 0), new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: 0.5 }));
+          body.position.set(x, tiltYAt((zTop + zBot) / 2) + height / 2, (zTop + zBot) / 2);
+          body.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: `${d.low.toFixed(0)} - ${d.high.toFixed(0)}`, volume: d.volume, normVol: nv };
+          sceneGroup.add(body); interactiveMeshes.push(body);
+          linePoints.push(new THREE.Vector3(x, tiltYAt(zC) + height + 0.15, zC));
         });
       }
       const pathGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
