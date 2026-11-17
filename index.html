@@ -85,6 +85,19 @@
           <div class="flex justify-between"><span class="text-slate-400">Operações:</span><span id="stat-abc" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Período:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
         </div>
+
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
+          </div>
+          <div class="flex justify-between"><span class="text-slate-400">Delta (Compra-Venda):</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Absorção da POC:</span><span id="an-absorption" class="font-mono font-semibold text-emerald-400">50%</span></div>
+          <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="an-abs-bar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500" style="width:50%"></div></div>
+          <div class="flex justify-between"><span class="text-slate-400">VWSD (valor):</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Assimetria (Skew):</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Z-Score máx (anomalia):</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Liquidez POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
+        </div>
       </div>
 
       <div class="absolute top-3 right-3 z-10 flex flex-col gap-2">
@@ -228,6 +241,9 @@
             <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
               <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">Consumo de Liquidez <span class="text-slate-500">(derretimento)</span></span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-liquidity"><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
             <input id="ref-price" type="number" placeholder="POC manual (vazio = automático)" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-500">
             <input id="ma-period" type="number" value="20" min="1" placeholder="período da média móvel" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-amber-500">
           </div>
@@ -340,6 +356,12 @@
     let dateFrom = null;
     let dateTo = null;
     let pocPrice = null;
+    let pocX = 0;
+    let pocY = 0;
+    let analytics = { pocPrice: null, delta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 };
+    let liquidity = 1.0;
+    let simTimer = null;
+    let simulateLiquidity = false;
     let maPeriod = 20;
     let showPOC = true;
     let showMA = true;
@@ -609,6 +631,13 @@
       const d = new Date((ts + tzOffsetHours * 3600) * 1000);
       return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     }
+    function fmtMoney(v) {
+      if (!isFinite(v)) return '—';
+      if (v >= 1e9) return 'R$ ' + (v / 1e9).toFixed(2) + 'B';
+      if (v >= 1e6) return 'R$ ' + (v / 1e6).toFixed(2) + 'M';
+      if (v >= 1e3) return 'R$ ' + (v / 1e3).toFixed(1) + 'K';
+      return 'R$ ' + Math.round(v).toString();
+    }
     function inActiveWindow(ts) { return activeWindow.days.has(localDateKey(ts)); }
 
     function computeActiveWindow() {
@@ -783,11 +812,19 @@
         else if (volumeFilter === 'aboveavg') lo = meanRaw;
         displayGrid = displayGrid.map((row) => row.map((v) => (v >= lo && v <= hi) ? v : 0));
       }
-      let maxCellVol = 0, pocX = 0, pocY = 0;
+      if (liquidity < 1.0) {
+        let preMax = 0;
+        for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > preMax) preMax = displayGrid[x][y];
+        const threshold = preMax * 0.55;
+        displayGrid = displayGrid.map((row) => row.map((v) => (v >= threshold ? v * liquidity : v)));
+      }
+      let maxCellVol = 0;
+      pocX = 0; pocY = 0;
       for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > maxCellVol) { maxCellVol = displayGrid[x][y]; pocX = x; pocY = y; }
       maxCellVol = maxCellVol || 1;
       pocPrice = minPrice + (pocY / (priceBinsCount - 1 || 1)) * priceRange;
       terrainState = { displayGrid, maxCellVol };
+      computeAnalytics();
 
       const xLabels = []; for (let i = 0; i < timeBinsCount; i++) xLabels.push(fmtHM(Math.round(minMin + (i / (timeBinsCount - 1 || 1)) * minRange)));
       const yLabels = []; for (let j = 0; j < priceBinsCount; j++) yLabels.push((minPrice + (j / (priceBinsCount - 1 || 1)) * priceRange).toFixed(0));
@@ -1063,6 +1100,49 @@
       }
     }
 
+    function renderPOCHighlight() {
+      if (!showPOC || pocPrice == null || !terrainState) return;
+      const x = worldX(scale.minMin + (pocX / (timeBinsCount - 1 || 1)) * scale.minRange);
+      const z = worldZ(scale.minPrice + (pocY / (priceBinsCount - 1 || 1)) * scale.priceRange);
+      const h = tiltYAt(z) + sampleHeight(x, z) + 0.6;
+      const glow = makeGlowSprite(0xffd700, 7.5);
+      glow.position.set(x, h, z);
+      overlayGroup.add(glow);
+      for (const r of [2.2, 4.2, 6.4]) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 8, 56), new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.45, depthWrite: false }));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, h, z);
+        overlayGroup.add(ring);
+      }
+      const value = (terrainState.maxCellVol * liquidity);
+      const lbl = makeTextSprite(fmtMoney(value), '#ffd700', 7.5, 1.7);
+      lbl.position.set(x, h + 2.6, z);
+      overlayGroup.add(lbl);
+    }
+
+    function renderAnomalies() {
+      if (!terrainState || !activeData.length) return;
+      let meanVol = 0, cnt = 0;
+      for (const b of activeData) { meanVol += b.volume; cnt++; }
+      meanVol = cnt ? meanVol / cnt : 0;
+      let stdVol = 0;
+      for (const b of activeData) stdVol += Math.pow(b.volume - meanVol, 2);
+      stdVol = cnt ? Math.sqrt(stdVol / cnt) : 0;
+      if (!stdVol) return;
+      let shown = 0;
+      for (const b of activeData) {
+        const zs = (b.volume - meanVol) / stdVol;
+        if (zs < 2.5) continue;
+        if (shown++ > 30) break;
+        const x = worldX(b.minuteOfDay);
+        const z = worldZ(b.close);
+        const y = tiltYAt(z) + sampleHeight(x, z) + 0.5;
+        const mk = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85 }));
+        mk.position.set(x, y, z);
+        overlayGroup.add(mk);
+      }
+    }
+
     function renderReferenceLine() {
       const price = refPrice ?? pocPrice;
       if (!showPOC || price == null) return;
@@ -1115,6 +1195,8 @@
       }
       renderReferenceLine();
       renderFibonacci();
+      renderPOCHighlight();
+      renderAnomalies();
     }
 
     function periodDates() {
@@ -1126,6 +1208,29 @@
       return `${fmt(sorted[0])} … ${fmt(sorted[sorted.length - 1])}`;
     }
 
+    function computeAnalytics() {
+      if (!activeData.length) { analytics = { pocPrice: null, delta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 }; return; }
+      let wsum = 0, mean = 0;
+      for (const b of activeData) { mean += b.close * b.volume; wsum += b.volume; }
+      mean = wsum ? mean / wsum : 0;
+      let vvar = 0, vskew = 0;
+      for (const b of activeData) { const d = b.close - mean; vvar += b.volume * d * d; vskew += b.volume * d * d * d; }
+      const vwsd = wsum ? Math.sqrt(vvar / wsum) : 0;
+      const skew = (wsum && vwsd > 0) ? (vskew / wsum) / Math.pow(vwsd, 3) : 0;
+      let delta = 0;
+      for (const b of activeData) delta += b.volume * (b.close >= b.open ? 1 : -1);
+      const absorption = wsum ? Math.max(0, Math.min(1, 0.5 + (delta / wsum) * 0.5)) : 0.5;
+      let meanVol = 0, cnt = 0;
+      for (const b of activeData) { meanVol += b.volume; cnt++; }
+      meanVol = cnt ? meanVol / cnt : 0;
+      let stdVol = 0;
+      for (const b of activeData) stdVol += Math.pow(b.volume - meanVol, 2);
+      stdVol = cnt ? Math.sqrt(stdVol / cnt) : 0;
+      let maxZ = 0;
+      for (const b of activeData) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
+      analytics = { pocPrice, delta, absorption, vwsd, skew, maxZ };
+    }
+
     function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol) {
       document.getElementById('stat-points').textContent = activeData.length.toLocaleString('pt-BR');
       document.getElementById('stat-price-range').textContent = `${scale.minPrice.toFixed(0)} - ${scale.maxPrice.toFixed(0)}`;
@@ -1135,6 +1240,16 @@
       const pLabel = (dateFrom || dateTo) ? 'Datas' : (period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês');
       const el = document.getElementById('stat-period');
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
+      const an = analytics;
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('an-delta', `${an.delta >= 0 ? '+' : ''}${Math.round(an.delta).toLocaleString('pt-BR')}`);
+      set('an-absorption', `${Math.round(an.absorption * 100)}%`);
+      set('an-vwsd', `${an.vwsd.toFixed(1)} pts`);
+      set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
+      set('an-zscore', `${an.maxZ.toFixed(1)}σ`);
+      set('an-liquidity', `${Math.round(liquidity * 100)}%`);
+      const ab = document.getElementById('an-abs-bar');
+      if (ab) ab.style.width = `${Math.round(an.absorption * 100)}%`;
     }
 
     function updateVisualization() {
@@ -1266,6 +1381,7 @@
       document.getElementById('toggle-poc').addEventListener('change', (e) => { showPOC = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-ma').addEventListener('change', (e) => { showMA = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
+      document.getElementById('toggle-liquidity').addEventListener('change', (e) => { simulateLiquidity = e.target.checked; if (simulateLiquidity) startLiquiditySim(); else stopLiquiditySim(); });
       document.getElementById('period-day').addEventListener('click', () => { period = 'day'; clearDateFilter(); stylePeriod('period-day'); updateVisualization(); });
       document.getElementById('period-week').addEventListener('click', () => { period = 'week'; clearDateFilter(); stylePeriod('period-week'); updateVisualization(); });
       document.getElementById('period-month').addEventListener('click', () => { period = 'month'; clearDateFilter(); stylePeriod('period-month'); updateVisualization(); });
@@ -1375,6 +1491,21 @@
       priceMax = pmax === '' ? null : Number(pmax);
       updateVisualization();
       showToast('Filtros aplicados.');
+    }
+
+    function startLiquiditySim() {
+      if (simTimer) clearInterval(simTimer);
+      simTimer = setInterval(() => {
+        liquidity -= 0.04;
+        if (liquidity <= 0.05) liquidity = 1.0;
+        updateVisualization();
+      }, 1000);
+    }
+
+    function stopLiquiditySim() {
+      if (simTimer) { clearInterval(simTimer); simTimer = null; }
+      liquidity = 1.0;
+      updateVisualization();
     }
 
     function animate() {
