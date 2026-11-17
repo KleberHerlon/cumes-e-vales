@@ -148,6 +148,35 @@
           <button id="btn-filters" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-filter text-indigo-400"></i> Aplicar Filtros</button>
         </div>
 
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Datas (Calendário)</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">De</span><input id="f-date-from" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+            <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Até</span><input id="f-date-to" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+          </div>
+          <button id="btn-clear-dates" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-xmark text-indigo-400"></i> Limpar datas</button>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Filtro de Volume</div>
+          <select id="vol-filter" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
+            <option value="all">Todos os volumes</option>
+            <option value="low">Baixo (0–30%)</option>
+            <option value="medium">Médio (30–60%)</option>
+            <option value="high">Alto (60%+)</option>
+            <option value="aboveavg">Acima da média</option>
+          </select>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800/80">
+          <div class="text-slate-300 font-medium">Linha de Referência (Preço)</div>
+          <div class="flex gap-1.5">
+            <input id="ref-price" type="number" placeholder="ex: 128850" class="flex-1 bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-500">
+            <button id="btn-ref-poc" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-medium rounded-lg border border-slate-700 transition whitespace-nowrap">POC</button>
+          </div>
+          <button id="btn-ref-clear" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-eraser text-cyan-400"></i> Limpar linha</button>
+        </div>
+
         <div class="space-y-1.5">
           <label class="text-slate-300 font-medium block">Modelo Geométrico</label>
           <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
@@ -262,6 +291,11 @@
     let priceTilt = 12;
     let timeZoom = 0;
     const TIME_ZOOM = [30, 15, 10, 5, 1];
+    let volumeFilter = 'all';
+    let refPrice = null;
+    let dateFrom = null;
+    let dateTo = null;
+    let pocPrice = null;
 
     let rawMarketData = [];
     let pivots = [];
@@ -459,7 +493,10 @@
           if (minuteOfDay == null) minuteOfDay = 540 + ((added % 90) * 6);
           const dp = String(rawDate).split(' ')[0];
           if (dp && dp !== curDay) { curDay = dp; dayCounter++; }
-          const t = ts(rawDate) ?? (Date.UTC(2026, 0, 5, 0, 0, 0) / 1000 + dayCounter * 86400 + minuteOfDay * 60);
+          let t;
+          const dm = String(rawDate).match(/(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+          if (dm) t = Date.UTC(+dm[1], +dm[2] - 1, +dm[3], 0, 0, 0) / 1000 + (minuteOfDay - tzOffsetHours * 60) * 60;
+          else t = ts(rawDate) ?? (Date.UTC(2026, 0, 5, 0, 0, 0) / 1000 + dayCounter * 86400 + minuteOfDay * 60);
           rawMarketData.push({ dayIndex: Math.max(0, dayCounter - 1), minuteOfDay, timeLabel: fmtHM(minuteOfDay), time: t, open, high, low, close: price, volume: vol });
           added++;
         }
@@ -517,8 +554,12 @@
       const days = new Set();
       for (const b of rawMarketData) days.add(localDateKey(b.time));
       const sorted = [...days].sort();
-      const count = period === 'day' ? 2 : period === 'week' ? 7 : 30;
-      activeWindow.days = new Set(sorted.slice(-count));
+      if (dateFrom || dateTo) {
+        activeWindow.days = new Set(sorted.filter((d) => (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo)));
+      } else {
+        const count = period === 'day' ? 2 : period === 'week' ? 7 : 30;
+        activeWindow.days = new Set(sorted.slice(-count));
+      }
     }
 
     function activeBars() {
@@ -647,9 +688,21 @@
           displayGrid[x][y] = sum / ws;
         }
       }
+      if (volumeFilter !== 'all') {
+        let maxRaw = 0, meanRaw = 0, cnt = 0;
+        for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) { const v = displayGrid[x][y]; if (v > maxRaw) maxRaw = v; if (v > 0) { meanRaw += v; cnt++; } }
+        meanRaw = cnt ? meanRaw / cnt : 0;
+        let lo = 0, hi = Infinity;
+        if (volumeFilter === 'low') hi = maxRaw * 0.3;
+        else if (volumeFilter === 'medium') { lo = maxRaw * 0.3; hi = maxRaw * 0.6; }
+        else if (volumeFilter === 'high') lo = maxRaw * 0.6;
+        else if (volumeFilter === 'aboveavg') lo = meanRaw;
+        displayGrid = displayGrid.map((row) => row.map((v) => (v >= lo && v <= hi) ? v : 0));
+      }
       let maxCellVol = 0, pocX = 0, pocY = 0;
       for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > maxCellVol) { maxCellVol = displayGrid[x][y]; pocX = x; pocY = y; }
       maxCellVol = maxCellVol || 1;
+      pocPrice = minPrice + (pocY / (priceBinsCount - 1 || 1)) * priceRange;
       terrainState = { displayGrid, maxCellVol };
 
       const xLabels = []; for (let i = 0; i < timeBinsCount; i++) xLabels.push(fmtHM(Math.round(minMin + (i / (timeBinsCount - 1 || 1)) * minRange)));
@@ -744,28 +797,18 @@
         mesh.userData = { type: 'cells' };
         sceneGroup.add(mesh); interactiveMeshes.push(mesh);
       } else {
-        const bullCol = 0x00e07f, bearCol = 0xff3b5c;
-        const spacing = PLANE_WIDTH / (slice.length - 1 || 1);
-        const bodyW = Math.min(0.5, spacing * 0.7);
-        const wickW = Math.min(0.16, spacing * 0.22);
         slice.forEach((d, idx) => {
           const nv = d.volume / maxVol;
-          const height = Math.max(0.4, nv * MAX_HEIGHT * zScaleFactor);
+          const height = Math.max(0.3, nv * MAX_HEIGHT * zScaleFactor);
           const x = (idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
-          const zO = zLocal(d.open), zC = zLocal(d.close), zH = zLocal(d.high), zL = zLocal(d.low);
-          const bull = d.close >= d.open;
-          const col = bull ? bullCol : bearCol;
-          const zTop = Math.max(zO, zC), zBot = Math.min(zO, zC);
-          const bodyLen = Math.max(0.16, zTop - zBot);
-          const wickLen = Math.max(0.06, zH - zL);
-          const wick = new THREE.Mesh(new THREE.BoxGeometry(wickW, height, wickLen).translate(0, height / 2, 0), new THREE.MeshStandardMaterial({ color: col, roughness: 0.4, emissive: col, emissiveIntensity: 0.22 }));
-          wick.position.set(x, tiltYAt((zH + zL) / 2) + height / 2, (zH + zL) / 2);
-          sceneGroup.add(wick);
-          const body = new THREE.Mesh(new THREE.BoxGeometry(bodyW, height, bodyLen).translate(0, height / 2, 0), new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: 0.5 }));
-          body.position.set(x, tiltYAt((zTop + zBot) / 2) + height / 2, (zTop + zBot) / 2);
-          body.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: `${d.low.toFixed(0)} - ${d.high.toFixed(0)}`, volume: d.volume, normVol: nv };
-          sceneGroup.add(body); interactiveMeshes.push(body);
-          linePoints.push(new THREE.Vector3(x, tiltYAt(zC) + height + 0.15, zC));
+          const z = zLocal(d.close);
+          const col = getThermalColor(nv);
+          const geo = new THREE.BoxGeometry(0.28, height, 0.28).translate(0, height / 2, 0);
+          const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: nv * 0.3 }));
+          mesh.position.set(x, tiltYAt(z) + height / 2, z);
+          mesh.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: d.close.toFixed(2), volume: d.volume, normVol: nv };
+          sceneGroup.add(mesh); interactiveMeshes.push(mesh);
+          linePoints.push(new THREE.Vector3(x, tiltYAt(z) + 0.15, z));
         });
       }
       const pathGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
@@ -846,6 +889,18 @@
       g.add(ring);
     }
 
+    function renderReferenceLine() {
+      if (refPrice == null) return;
+      const z = worldZ(refPrice);
+      const h = tiltMax() + MAX_HEIGHT * zScaleFactor + 4;
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, h), new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
+      plane.position.set(0, h / 2, z);
+      overlayGroup.add(plane);
+      const lbl = makeTextSprite(String(Math.round(refPrice)), '#22d3ee', 7, 1.6);
+      lbl.position.set(PLANE_WIDTH / 2 + 2.5, 0.6, z);
+      overlayGroup.add(lbl);
+    }
+
     function renderOverlay() {
       clearGroup(overlayGroup);
       activeTradeGroups = [];
@@ -898,6 +953,7 @@
           overlayGroup.add(g);
         }
       }
+      renderReferenceLine();
     }
 
     function periodDates() {
@@ -1011,6 +1067,13 @@
       document.getElementById('period-week').addEventListener('click', () => { period = 'week'; stylePeriod('period-week'); updateVisualization(); });
       document.getElementById('period-month').addEventListener('click', () => { period = 'month'; stylePeriod('period-month'); updateVisualization(); });
       document.getElementById('btn-filters').addEventListener('click', applyFilters);
+      document.getElementById('vol-filter').addEventListener('change', (e) => { volumeFilter = e.target.value; updateVisualization(); });
+      document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); renderOverlay(); });
+      document.getElementById('btn-ref-poc').addEventListener('click', () => { if (pocPrice != null) { refPrice = pocPrice; document.getElementById('ref-price').value = Math.round(pocPrice); renderOverlay(); } });
+      document.getElementById('btn-ref-clear').addEventListener('click', () => { refPrice = null; document.getElementById('ref-price').value = ''; renderOverlay(); });
+      document.getElementById('f-date-from').addEventListener('change', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
+      document.getElementById('f-date-to').addEventListener('change', (e) => { dateTo = e.target.value || null; updateVisualization(); });
+      document.getElementById('btn-clear-dates').addEventListener('click', () => { dateFrom = null; dateTo = null; document.getElementById('f-date-from').value = ''; document.getElementById('f-date-to').value = ''; updateVisualization(); });
       document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
       document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
       document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
