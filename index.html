@@ -358,6 +358,7 @@
     let pocPrice = null;
     let pocX = 0;
     let pocY = 0;
+    let pocs = [];
     let analytics = { pocPrice: null, delta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 };
     let liquidity = 1.0;
     let simTimer = null;
@@ -823,6 +824,20 @@
       for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > maxCellVol) { maxCellVol = displayGrid[x][y]; pocX = x; pocY = y; }
       maxCellVol = maxCellVol || 1;
       pocPrice = minPrice + (pocY / (priceBinsCount - 1 || 1)) * priceRange;
+      const priceLevels = [];
+      for (let y = 0; y < priceBinsCount; y++) {
+        let total = 0, maxX = 0, maxV = 0;
+        for (let x = 0; x < timeBinsCount; x++) {
+          total += displayGrid[x][y];
+          if (displayGrid[x][y] > maxV) { maxV = displayGrid[x][y]; maxX = x; }
+        }
+        priceLevels.push({ y, v: total, x: maxX });
+      }
+      pocs = priceLevels
+        .sort((a, b) => b.v - a.v)
+        .slice(0, 3)
+        .filter((e) => e.v > 0)
+        .map((e, i) => ({ price: minPrice + (e.y / (priceBinsCount - 1 || 1)) * priceRange, yIndex: e.y, xIndex: e.x, vol: e.v, level: i + 1 }));
       terrainState = { displayGrid, maxCellVol };
       computeAnalytics();
 
@@ -1101,23 +1116,27 @@
     }
 
     function renderPOCHighlight() {
-      if (!showPOC || pocPrice == null || !terrainState) return;
-      const x = worldX(scale.minMin + (pocX / (timeBinsCount - 1 || 1)) * scale.minRange);
-      const z = worldZ(scale.minPrice + (pocY / (priceBinsCount - 1 || 1)) * scale.priceRange);
-      const h = tiltYAt(z) + sampleHeight(x, z) + 0.6;
-      const glow = makeGlowSprite(0xffd700, 7.5);
-      glow.position.set(x, h, z);
-      overlayGroup.add(glow);
-      for (const r of [2.2, 4.2, 6.4]) {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 8, 56), new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.45, depthWrite: false }));
-        ring.rotation.x = Math.PI / 2;
-        ring.position.set(x, h, z);
-        overlayGroup.add(ring);
-      }
-      const value = (terrainState.maxCellVol * liquidity);
-      const lbl = makeTextSprite(fmtMoney(value), '#ffd700', 7.5, 1.7);
-      lbl.position.set(x, h + 2.6, z);
-      overlayGroup.add(lbl);
+      if (!showPOC || !terrainState || !pocs.length) return;
+      pocs.forEach((poc, idx) => {
+        const primary = idx === 0;
+        const x = worldX(scale.minMin + (poc.xIndex / (timeBinsCount - 1 || 1)) * scale.minRange);
+        const z = worldZ(poc.price);
+        const h = tiltYAt(z) + sampleHeight(x, z) + 0.6;
+        const size = primary ? 7.5 : 5.5;
+        const op = primary ? 0.45 : 0.28;
+        const glow = makeGlowSprite(0xffd700, size);
+        glow.position.set(x, h, z);
+        overlayGroup.add(glow);
+        for (const r of primary ? [2.2, 4.2, 6.4] : [1.6, 3.0]) {
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 8, 56), new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: op, depthWrite: false }));
+          ring.rotation.x = Math.PI / 2;
+          ring.position.set(x, h, z);
+          overlayGroup.add(ring);
+        }
+        const lbl = makeTextSprite(primary ? `POC ${fmtMoney(terrainState.maxCellVol * liquidity)}` : `POC ${idx + 1}`, '#ffd700', primary ? 7.5 : 5.5, primary ? 1.7 : 1.3);
+        lbl.position.set(x, h + (primary ? 2.6 : 1.8), z);
+        overlayGroup.add(lbl);
+      });
     }
 
     function renderAnomalies() {
