@@ -143,6 +143,51 @@ def bar_to_msg(symbol: str, timeframe: str, row) -> dict:
     }
 
 
+def rate_to_plain(row) -> dict:
+    return {
+        "time": int(row["time"]),
+        "open": float(row["open"]),
+        "high": float(row["high"]),
+        "low": float(row["low"]),
+        "close": float(row["close"]),
+        "tick_volume": int(row["tick_volume"]),
+        "real_volume": int(row["real_volume"]),
+    }
+
+
+def history_cache_path(symbol: str, timeframe: str) -> Path:
+    safe = "".join(c if c.isalnum() else "_" for c in symbol)
+    return HERE / f"history_{safe}_{timeframe}.json"
+
+
+def load_history(symbol: str, timeframe: str, days: int, refresh: bool = False) -> list[dict]:
+    path = history_cache_path(symbol, timeframe)
+    if path.exists() and not refresh:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            bars = data.get("bars") or []
+            if data.get("symbol") == symbol and data.get("timeframe") == timeframe and bars:
+                last_ts = int(bars[-1]["time"])
+                if datetime.now().timestamp() - last_ts < 86400:
+                    log(f"cache carregado: {path.name} ({len(bars)} barras)")
+                    return bars
+        except Exception:  # noqa: BLE001
+            pass
+    date_from = datetime.now() - timedelta(days=days)
+    log(f"baixando histórico de {days} dia(s) ({date_from:%d/%m/%Y} → hoje)...")
+    rates = mt5.copy_rates_range(symbol, TIMEFRAMES[timeframe.upper()], date_from, datetime.now())
+    if rates is None:
+        log(f"falha ao baixar histórico de {symbol}: {mt5.last_error()}")
+        return []
+    rows = [rate_to_plain(r) for r in rates]
+    try:
+        path.write_text(json.dumps({"symbol": symbol, "timeframe": timeframe, "bars": rows}), encoding="utf-8")
+        log(f"cache salvo: {path.name} ({len(rows)} barras)")
+    except Exception:  # noqa: BLE001
+        pass
+    return rows
+
+
 def tick_msg(symbol: str) -> dict | None:
     t = mt5.symbol_info_tick(symbol)
     if t is None:
@@ -243,11 +288,12 @@ async def handler(websocket, *_args) -> None:
     log(f"cliente conectado ({len(CLIENTS)} ativos)")
     try:
         await websocket.send(json.dumps({"type": "hello", "symbol": SYMBOL, "timeframe": TIMEFRAME}))
-        for row in HISTORY:
-            await websocket.send(json.dumps(bar_to_msg(SYMBOL, TIMEFRAME, row)))
+        bars = [bar_to_msg(SYMBOL, TIMEFRAME, row) for row in HISTORY]
+        for i in range(0, len(bars), 2000):
+            await websocket.send(json.dumps({"type": "bars", "bars": bars[i:i + 2000]}, default=str))
         if ABC_AVAILABLE and DETECTOR is not None:
-            bars = fetch_bars(SYMBOL, TIMEFRAME, HISTORY_COUNT)
-            pat = detect_pattern(DETECTOR, bars, SYMBOL, TIMEFRAME)
+            bars_snapshot = fetch_bars(SYMBOL, TIMEFRAME, HISTORY_COUNT)
+            pat = detect_pattern(DETECTOR, bars_snapshot, SYMBOL, TIMEFRAME)
             if pat:
                 await websocket.send(json.dumps(pat))
         async for _ in websocket:
@@ -276,7 +322,9 @@ async def poll_loop(symbol: str, timeframe: str, history: int, interval: float, 
                 key = int(closed["time"])
                 if key != last_sent:
                     last_sent = key
-                    await broadcast(bar_to_msg(symbol, timeframe, closed))
+                    plain = rate_to_plain(closed)
+                    HISTORY.append(plain)
+                    await broadcast(bar_to_msg(symbol, timeframe, plain))
                     if detector is not None:
                         bars = fetch_bars(symbol, timeframe, history)
                         pat = detect_pattern(detector, bars, symbol, timeframe)
@@ -299,7 +347,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeframe", default=os.environ.get("CV_TIMEFRAME", "M1"))
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=int(os.environ.get("CV_PORT", "8000")))
-    p.add_argument("--history", type=int, default=int(os.environ.get("CV_HISTORY", "600")))
+    p.add_argument("--history", type=int, default=int(os.environ.get("CV_HISTORY", "600")), help="barras para o detector ABC")
+    p.add_argument("--history-days", type=int, default=int(os.environ.get("CV_HISTORY_DAYS", "365")), help="dias de histórico a carregar (padrão 365 = 1 ano)")
+    p.add_argument("--refresh", action="store_true", help="força novo download do histórico (ignora cache)")
     p.add_argument("--interval", type=float, default=1.0)
     p.add_argument("--config", default=str(DEFAULT_CONFIG), help="JSON de config do robô (detector + magic)")
     p.add_argument("--magic", type=int, default=None, help="Magic a filtrar (padrão: execution.magic do config)")
@@ -354,8 +404,7 @@ async def main() -> None:
         mt5.shutdown()
         sys.exit(1)
 
-    rates = mt5.copy_rates_from_pos(args.symbol, TIMEFRAMES[timeframe], 0, args.history)
-    history = list(rates) if rates is not None else []
+    history = load_history(args.symbol, timeframe, args.history_days, refresh=args.refresh)
     log(f"{len(history)} barras de histórico carregadas")
 
     SYMBOL = args.symbol

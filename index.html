@@ -380,6 +380,7 @@
     let fibOpacity = 0.4;
 
     let rawMarketData = [];
+    let barTimes = new Set();
     let pivots = [];
     let trades = [];
     let ws = null;
@@ -1492,8 +1493,25 @@
 
     function handleLiveMessage(msg) {
       const type = msg.type || msg.t;
+      if (type === 'hello') {
+        rawMarketData = [];
+        barTimes = new Set();
+        presetApplied = false;
+        return;
+      }
+      if (type === 'bars') {
+        for (const b of msg.bars || []) {
+          const time = ts(b.time ?? b.ts); if (time == null || barTimes.has(time)) continue;
+          barTimes.add(time);
+          const close = num(b.close ?? b.c); if (!isFinite(close)) continue;
+          rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
+        }
+        updateVisualization();
+        return;
+      }
       if (type === 'bar' || type === 'candle') {
-        const time = ts(msg.time ?? msg.ts); if (time == null) return;
+        const time = ts(msg.time ?? msg.ts); if (time == null || barTimes.has(time)) return;
+        barTimes.add(time);
         const close = num(msg.close ?? msg.c), open = num(msg.open ?? msg.o, close), high = num(msg.high ?? msg.h, close), low = num(msg.low ?? msg.l, close), vol = num(msg.volume ?? msg.vol ?? msg.tick_volume, 0);
         if (!isFinite(close)) return;
         rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open, high, low, close, volume: vol });
