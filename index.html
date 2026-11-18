@@ -58,10 +58,7 @@
       </div>
     </div>
     <div class="flex items-center space-x-2">
-      <span id="badge-dataset" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"><span id="ws-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span id="badge-text">Simulado (15 pregões)</span></span>
-      <button id="btn-load-mock" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-2">
-        <i class="fa-solid fa-rotate text-indigo-400"></i><span class="hidden sm:inline">Gerar Pregões Simulados</span><span class="sm:hidden">Simular</span>
-      </button>
+      <span id="badge-dataset" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"><span id="ws-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span id="badge-text">Conectando ao mercado…</span></span>
       <label class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg cursor-pointer transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
         <i class="fa-solid fa-file-csv"></i><span>Carregar CSV</span>
         <input type="file" id="csv-file-input" accept=".csv,.txt" multiple class="hidden">
@@ -84,7 +81,7 @@
           <div class="flex justify-between"><span class="text-slate-400">Pico POC (Máx Vol):</span><span id="stat-poc" class="font-mono font-semibold text-amber-400">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Faixa POC Dominante:</span><span id="stat-poc-zone" class="font-mono font-semibold text-rose-400">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Operações:</span><span id="stat-abc" class="font-mono font-semibold text-slate-200">0</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Período:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Datas:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
         </div>
 
         <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
@@ -175,12 +172,13 @@
         </div>
 
         <details class="cv-acc" open>
-          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-indigo-400"></i> Período &amp; Datas</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
+          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-indigo-400"></i> Datas (Calendário)</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
-            <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-              <button id="period-day" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-calendar-day"></i> Dia</button>
-              <button id="period-week" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar-week"></i> Semana</button>
-              <button id="period-month" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-calendar"></i> Mês</button>
+            <div class="grid grid-cols-4 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
+              <button id="preset-day" class="py-2 px-1 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1 shadow">Dia</button>
+              <button id="preset-week" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Semana</button>
+              <button id="preset-month" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Mês</button>
+              <button id="preset-year" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Ano</button>
             </div>
             <div class="grid grid-cols-2 gap-1.5">
               <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">De</span><input id="f-date-from" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
@@ -351,7 +349,7 @@
     let showABC = true;
     let showTrail = false;
     let tzOffsetHours = -3;
-    let period = 'day';
+    let presetApplied = false;
     let filterStart = SESSION_START;
     let filterEnd = SESSION_END;
     let priceMin = null;
@@ -395,6 +393,8 @@
     let activeWindow = { days: new Set(), t0: 0, t1: 0 };
     let activeTradeGroups = [];
     let tradeGroupRefs = [];
+    let priceMarker = null;
+    let priceLine = null;
     let hoveredTradeId = null;
 
     let scene, camera, renderer, controls, raycaster, mouse;
@@ -476,77 +476,6 @@
 
     function fmtHM(min) { const m = ((min % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; }
     function todMin(ts) { const d = new Date(ts * 1000); const m = d.getUTCHours() * 60 + d.getUTCMinutes() + tzOffsetHours * 60; return ((m % 1440) + 1440) % 1440; }
-
-    function generateSimulatedData() {
-      const records = [];
-      pivots = [];
-      trades = [];
-      const numDays = 30;
-      const startHour = 9, endHour = 18;
-      const totalMin = (endHour - startHour) * 60;
-      const baseDay = Date.UTC(2026, 0, 5, 0, 0, 0) / 1000;
-      const centers = [
-        { price: 128250, timeMin: 45, spreadP: 180, spreadT: 50, intensity: 1.0 },
-        { price: 128850, timeMin: 150, spreadP: 220, spreadT: 75, intensity: 1.35 },
-        { price: 128550, timeMin: 310, spreadP: 160, spreadT: 60, intensity: 0.85 },
-        { price: 129150, timeMin: 460, spreadP: 210, spreadT: 55, intensity: 1.25 },
-      ];
-      for (let day = 0; day < numDays; day++) {
-        let price = 128400 + Math.sin(day * 0.8) * 350;
-        let prevClose = price;
-        for (let m = 0; m < totalMin; m += 2) {
-          const minuteOfDay = startHour * 60 + m;
-          const time = baseDay + day * 86400 + (minuteOfDay + 180) * 60;
-          const pull = (128700 - price) * 0.008;
-          const open = prevClose;
-          let close = open + pull + (Math.random() - 0.5) * 85;
-          const high = Math.max(open, close) + Math.random() * 30;
-          const low = Math.min(open, close) - Math.random() * 30;
-          const dayProgress = m / totalMin;
-          const uCurve = 1.4 - Math.sin(dayProgress * Math.PI) * 0.85;
-          let volume = (Math.random() * 600 + 300) * uCurve;
-          for (const c of centers) {
-            const dP = (price - c.price) / c.spreadP, dT = (m - c.timeMin) / c.spreadT;
-            volume += Math.exp(-0.5 * (dP * dP + dT * dT)) * 4200 * c.intensity * (0.7 + Math.random() * 0.6);
-          }
-          records.push({ dayIndex: day, minuteOfDay, timeLabel: fmtHM(minuteOfDay), time, open, high, low, close, volume: Math.round(volume) });
-          prevClose = close; price = close;
-        }
-      }
-      for (let day = 0; day < numDays; day++) {
-        const n = 3 + Math.floor(Math.random() * 3);
-        for (let k = 0; k < n; k++) {
-          const m = Math.floor(Math.random() * (totalMin - 180)) + 50;
-          const minuteOfDay = startHour * 60 + m;
-          const time = baseDay + day * 86400 + (minuteOfDay + 180) * 60;
-          const up = Math.random() > 0.5;
-          const p = 128200 + Math.random() * 1400;
-          const wave = 140 + Math.random() * 220;
-          const leg1 = 20 + Math.floor(Math.random() * 20);
-          const leg2 = 20 + Math.floor(Math.random() * 20);
-          const dir = up ? 'compra' : 'venda';
-          const a = { t: time, m: minuteOfDay, p: up ? p : p + wave };
-          const b = { t: time + leg1 * 60, m: minuteOfDay + leg1, p: up ? p + wave : p - wave };
-          const c = { t: time + (leg1 + leg2) * 60, m: minuteOfDay + leg1 + leg2, p: up ? p + wave * 0.3 : p - wave * 0.3 };
-          const r = Math.random();
-          const result = r < 0.5 ? 'gain' : r < 0.85 ? 'stop' : 'filtered';
-          const scenario = Math.random() > 0.5 ? 'EXAUSTAO/INVERSAO' : 'CONTINUIDADE/DEFESA';
-          const confidence = 0.5 + Math.random() * 0.45;
-          pivots.push({ a, b, c, scenario, direction: dir, result, confidence });
-          if (result !== 'filtered') {
-            const entryM = c.m;
-            const exitM = entryM + Math.floor(15 + Math.random() * 30);
-            const target = up ? c.p + wave * 0.6 : c.p - wave * 0.6;
-            const exitP = result === 'gain' ? (up ? c.p + wave * 0.5 : c.p - wave * 0.5) : (up ? b.p : b.p + wave * 0.2);
-            trades.push({ id: `d${day}k${k}`, direction: dir, scenario, confidence, entryTime: c.t, entryM, entryPrice: c.p, exitTime: c.t + (exitM - entryM) * 60, exitM, exitPrice: exitP, result, stop: b.p, target, dayIndex: day });
-          }
-        }
-      }
-      trades.sort((a, b) => a.entryTime - b.entryTime);
-      document.getElementById('badge-text').textContent = `Simulado · ${symbol}`;
-      setBadge('sim');
-      return records;
-    }
 
     function setBadge(kind) {
       const b = document.getElementById('badge-dataset');
@@ -657,27 +586,30 @@
       const days = new Set();
       for (const b of rawMarketData) days.add(localDateKey(b.time));
       const sorted = [...days].sort();
-      if (dateFrom || dateTo) {
-        activeWindow.days = new Set(sorted.filter((d) => (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo)));
-      } else {
-        const count = period === 'day' ? 2 : period === 'week' ? 7 : 30;
-        activeWindow.days = new Set(sorted.slice(-count));
-      }
+      activeWindow.days = new Set(sorted.filter((d) => (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo)));
     }
 
-    function updateDateInputs() {
-      if (dateFrom || dateTo) return;
-      const sorted = [...activeWindow.days].sort();
+    function shiftDate(key, deltaDays) {
+      const [y, m, d] = key.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d) + deltaDays * 86400000);
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+    }
+
+    function setDatePreset(days) {
+      const sorted = [...new Set(rawMarketData.map((b) => localDateKey(b.time)))].sort();
       if (!sorted.length) return;
+      dateTo = sorted[sorted.length - 1];
+      dateFrom = shiftDate(dateTo, -(days - 1));
       const elFrom = document.getElementById('f-date-from');
       const elTo = document.getElementById('f-date-to');
-      if (elFrom) elFrom.value = sorted[0];
-      if (elTo) elTo.value = sorted[sorted.length - 1];
+      if (elFrom) elFrom.value = dateFrom;
+      if (elTo) elTo.value = dateTo;
     }
 
     function clearDateFilter() {
       dateFrom = null;
       dateTo = null;
+      presetApplied = false;
       const elFrom = document.getElementById('f-date-from');
       const elTo = document.getElementById('f-date-to');
       if (elFrom) elFrom.value = '';
@@ -1003,7 +935,7 @@
       drawDayBoundaries(slice, PLANE_DEPTH / 2);
       document.getElementById('stat-points').textContent = slice.length.toLocaleString('pt-BR');
       document.getElementById('stat-price-range').textContent = `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)}`;
-      const pLabel = (dateFrom || dateTo) ? 'Datas' : (period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês');
+      const pLabel = 'Datas';
       const pel = document.getElementById('stat-period');
       if (pel) pel.textContent = `${pLabel} · ${periodDates()}`;
     }
@@ -1213,6 +1145,8 @@
       clearGroup(overlayGroup);
       activeTradeGroups = [];
       tradeGroupRefs = [];
+      priceMarker = null;
+      priceLine = null;
       if (viewMode !== 'topographic') return;
       if (showTrail) {
         for (const trade of trades) {
@@ -1259,6 +1193,33 @@
       renderFibonacci();
       renderPOCHighlight();
       renderAnomalies();
+      renderPriceMarker();
+    }
+
+    function renderPriceMarker() {
+      if (!activeData.length) return;
+      const last = activeData[activeData.length - 1];
+      const price = lastTick ? lastTick.price : last.close;
+      const time = lastTick ? lastTick.time : last.time;
+      const m = todMin(time);
+      const x = worldX(m);
+      const z = worldZ(price);
+      const y = tiltYAt(z) + sampleHeight(x, z) + 1.3;
+      if (!priceMarker) {
+        const g = new THREE.Group();
+        const glow = makeGlowSprite(0xffffff, 6);
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 14), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        g.add(glow);
+        g.add(sphere);
+        g.userData = { sphere, glow };
+        overlayGroup.add(g);
+        priceMarker = g;
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-PLANE_WIDTH / 2, 0.4, 0), new THREE.Vector3(PLANE_WIDTH / 2, 0.4, 0)]);
+        priceLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, depthWrite: false }));
+        overlayGroup.add(priceLine);
+      }
+      priceMarker.position.set(x, y, z);
+      if (priceLine) priceLine.position.z = z;
     }
 
     function setTradeHighlight(group, on) {
@@ -1414,7 +1375,7 @@
       document.getElementById('stat-poc').textContent = Math.round(maxCellVol).toLocaleString('pt-BR');
       document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY]} (${xLabels[pocX]})`;
       document.getElementById('stat-abc').textContent = `${trades.length} (${trades.filter((t) => t.result === 'gain').length}G/${trades.filter((t) => t.result === 'stop').length}S)`;
-      const pLabel = (dateFrom || dateTo) ? 'Datas' : (period === 'day' ? 'Dia' : period === 'week' ? 'Semana' : 'Mês');
+      const pLabel = 'Datas';
       const el = document.getElementById('stat-period');
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
       const an = analytics;
@@ -1432,10 +1393,14 @@
     function updateVisualization() {
       clearGroup(sceneGroup); clearGroup(overlayGroup); interactiveMeshes = [];
       if (!rawMarketData.length) return;
+      if (!presetApplied) {
+        presetApplied = true;
+        setDatePreset(2);
+        stylePreset('preset-day');
+      }
       activeData = activeBars();
       timeBinsCount = Math.max(2, Math.round((filterEnd - filterStart) / TIME_ZOOM[timeZoom]));
       computeScale();
-      updateDateInputs();
       if (viewMode === 'topographic') renderTopographicView();
       else renderLinearTrailView();
       renderOverlay();
@@ -1597,18 +1562,18 @@
       document.getElementById('toggle-ma').addEventListener('change', (e) => { showMA = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-liquidity').addEventListener('change', (e) => { simulateLiquidity = e.target.checked; if (simulateLiquidity) startLiquiditySim(); else stopLiquiditySim(); });
-      document.getElementById('period-day').addEventListener('click', () => { period = 'day'; clearDateFilter(); stylePeriod('period-day'); updateVisualization(); });
-      document.getElementById('period-week').addEventListener('click', () => { period = 'week'; clearDateFilter(); stylePeriod('period-week'); updateVisualization(); });
-      document.getElementById('period-month').addEventListener('click', () => { period = 'month'; clearDateFilter(); stylePeriod('period-month'); updateVisualization(); });
+      document.getElementById('preset-day').addEventListener('click', () => { setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
+      document.getElementById('preset-week').addEventListener('click', () => { setDatePreset(7); stylePreset('preset-week'); updateVisualization(); });
+      document.getElementById('preset-month').addEventListener('click', () => { setDatePreset(30); stylePreset('preset-month'); updateVisualization(); });
+      document.getElementById('preset-year').addEventListener('click', () => { setDatePreset(365); stylePreset('preset-year'); updateVisualization(); });
       document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
       document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
       document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; updateVisualization(); });
-      document.getElementById('btn-clear-dates').addEventListener('click', () => { clearDateFilter(); updateVisualization(); });
+      document.getElementById('btn-clear-dates').addEventListener('click', () => { setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
       document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
       document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
       document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
-      document.getElementById('btn-load-mock').addEventListener('click', () => { if (ws) { ws.close(); ws = null; } clearDateFilter(); rawMarketData = generateSimulatedData(); updateVisualization(); showToast('Novos dados simulados de 30 pregões gerados!'); });
       document.getElementById('csv-file-input').addEventListener('change', (e) => {
         const files = Array.from(e.target.files); if (!files.length) return;
         rawMarketData = []; pivots = []; trades = []; clearDateFilter();
@@ -1644,12 +1609,12 @@
       else { a.className = 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'; b.className = 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5'; }
     }
 
-    function stylePeriod(active) {
-      ['period-day', 'period-week', 'period-month'].forEach((id) => {
+    function stylePreset(active) {
+      ['preset-day', 'preset-week', 'preset-month', 'preset-year'].forEach((id) => {
         const b = document.getElementById(id);
         b.className = id === active
-          ? 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'
-          : 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5';
+          ? 'py-2 px-1 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1 shadow'
+          : 'py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1';
       });
     }
 
@@ -1729,6 +1694,19 @@
         }
         a.sphere.position.y = a.tip.y + Math.sin(t * 6) * 0.9;
       }
+      if (priceMarker && priceMarker.userData.sphere) {
+        const pp = 1 + Math.sin(t * 5) * 0.3;
+        priceMarker.userData.sphere.scale.setScalar(pp);
+        priceMarker.userData.glow.scale.setScalar(6 * (1 + Math.sin(t * 5) * 0.35));
+        if (lastTick) {
+          const m = todMin(lastTick.time);
+          const z = worldZ(lastTick.price);
+          const x = worldX(m);
+          const y = tiltYAt(z) + sampleHeight(x, z) + 1.3;
+          priceMarker.position.set(x, y, z);
+          if (priceLine) priceLine.position.z = z;
+        }
+      }
       controls.update();
       renderer.render(scene, camera);
       if (frame++ % 6 === 0) renderPiP();
@@ -1737,9 +1715,10 @@
     let frame = 0;
 
     initThree();
-    rawMarketData = generateSimulatedData();
+    rawMarketData = [];
     wireEvents();
     updateVisualization();
+    connectWS();
     animate();
   </script>
 </body>
