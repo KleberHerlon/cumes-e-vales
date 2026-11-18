@@ -50,6 +50,17 @@
     .cv-card-collapsed .cv-card-body,
     .cv-card-collapsed .cv-resize-handle { display: none !important; }
     .cv-card-collapsed { width: auto !important; height: auto !important; min-width: 170px; }
+    body.cv-clean-fullscreen > header,
+    body.cv-clean-fullscreen aside,
+    body.cv-clean-fullscreen #card-resumo,
+    body.cv-clean-fullscreen #card-fluxo,
+    body.cv-clean-fullscreen #card-legenda,
+    body.cv-clean-fullscreen #card-camera {
+      display: none !important;
+    }
+    body.cv-clean-fullscreen #btn-exit-clean-fs {
+      display: inline-flex !important;
+    }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
@@ -69,6 +80,9 @@
     </div>
     <div class="flex items-center space-x-2">
       <span id="badge-dataset" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"><span id="ws-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span id="badge-text">Conectando ao mercado…</span></span>
+      <button id="btn-clean-fs" title="Visualizar apenas 3D e Mini-Gráfico em tela cheia (Atalho: F)" class="px-2.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 border border-indigo-500/40 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+        <i class="fa-solid fa-expand text-indigo-400"></i><span class="hidden sm:inline">Tela Cheia</span>
+      </button>
       <button id="btn-reset-layout" title="Restaurar posição e tamanho padrão dos cards" class="px-2.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium rounded-lg transition flex items-center gap-1.5">
         <i class="fa-solid fa-up-down-left-right text-indigo-400"></i><span class="hidden sm:inline">Resetar Cards</span>
       </button>
@@ -165,9 +179,14 @@
           <button id="btn-cam-iso" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-cube text-indigo-400"></i><span class="hidden sm:inline">3D Isométrica</span></button>
           <button id="btn-cam-top" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-border-all text-emerald-400"></i><span class="hidden sm:inline">Topo (Heatmap)</span></button>
           <button id="btn-cam-side" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-chart-bar text-amber-400"></i><span class="hidden sm:inline">Lateral (Profile)</span></button>
+          <button id="btn-cam-fs" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/40 text-indigo-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-expand text-indigo-400"></i><span class="hidden sm:inline">Tela Cheia Limpa</span></button>
           <button id="btn-help" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-300 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-circle-question text-slate-400"></i><span class="hidden sm:inline">Ajuda CSV</span></button>
         </div>
       </div>
+
+      <button id="btn-exit-clean-fs" title="Restaurar barras, cards e filtros (Esc ou F)" class="hidden absolute top-3 right-3 z-30 pointer-events-auto px-3 py-1.5 bg-dark-900/85 hover:bg-dark-800 backdrop-blur-md border border-indigo-500/40 text-slate-200 rounded-xl shadow-xl text-xs font-semibold items-center gap-2 transition">
+        <i class="fa-solid fa-compress text-indigo-400"></i><span>Mostrar Filtros &amp; Barras</span>
+      </button>
 
       <div id="card-legenda" data-card-id="legenda" style="bottom:12px; left:12px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl px-2.5 py-2 flex flex-col gap-1.5">
         <div class="cv-drag-handle flex items-center justify-between gap-2 text-[10px] text-slate-400 border-b border-slate-800/80 pb-1">
@@ -3061,10 +3080,69 @@
       loadHudLayout();
     }
 
+    let cleanFullscreen = false;
+    function setCleanFullscreen(on, useNativeFs = true) {
+      cleanFullscreen = !!on;
+      document.body.classList.toggle('cv-clean-fullscreen', cleanFullscreen);
+      if (cleanFullscreen) {
+        const pipCard = document.getElementById('pip-wrap');
+        if (pipCard) setCardCollapsed(pipCard, false);
+      }
+      if (useNativeFs) {
+        try {
+          if (cleanFullscreen && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+            const p = document.documentElement.requestFullscreen();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          } else if (!cleanFullscreen && document.fullscreenElement && document.exitFullscreen) {
+            const p = document.exitFullscreen();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          }
+        } catch { /* ignore */ }
+      }
+      onWindowResize();
+      requestAnimationFrame(() => {
+        onWindowResize();
+        syncPipCanvasSize();
+        renderPiP();
+      });
+    }
+
+    function initCleanFullscreen() {
+      const enterBtn = document.getElementById('btn-clean-fs');
+      const camFsBtn = document.getElementById('btn-cam-fs');
+      const exitBtn = document.getElementById('btn-exit-clean-fs');
+      if (enterBtn) enterBtn.addEventListener('click', () => setCleanFullscreen(!cleanFullscreen));
+      if (camFsBtn) camFsBtn.addEventListener('click', () => setCleanFullscreen(true));
+      if (exitBtn) {
+        exitBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+        exitBtn.addEventListener('click', (e) => { e.stopPropagation(); setCleanFullscreen(false); });
+      }
+      window.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        if (e.key === 'f' || e.key === 'F') {
+          setCleanFullscreen(!cleanFullscreen);
+        } else if (e.key === 'Escape' && cleanFullscreen) {
+          setCleanFullscreen(false, false);
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && cleanFullscreen) {
+          setCleanFullscreen(false, false);
+          return;
+        }
+        requestAnimationFrame(() => {
+          onWindowResize();
+          syncPipCanvasSize();
+        });
+      });
+    }
+
     initThree();
     rawMarketData = [];
     wireEvents();
     initFloatingCards();
+    initCleanFullscreen();
     updateVisualization();
     loadSampleData().then(() => { connectWS(); });
     animate();
