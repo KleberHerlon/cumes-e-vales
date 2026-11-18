@@ -70,8 +70,8 @@
 
     <div id="canvas-container" class="flex-1 relative bg-dark-950 cursor-grab active:cursor-grabbing min-h-[320px]">
 
-      <div class="absolute top-3 left-3 z-10 pointer-events-none flex flex-col gap-2">
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
+      <div class="absolute top-3 left-3 z-10 pointer-events-auto flex flex-col gap-1.5 max-h-[calc(100%-94px)] overflow-y-auto pr-1">
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1 min-w-[220px]">
           <div class="flex items-center justify-between border-b border-slate-800 pb-1">
             <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-chart-area text-indigo-400"></i> Resumo do Mapa</span>
             <span id="badge-mode" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Atlas Liquidez</span>
@@ -84,7 +84,7 @@
           <div class="flex justify-between"><span class="text-slate-400">Datas:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
         </div>
 
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
+        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1 min-w-[220px]">
           <div class="flex items-center justify-between border-b border-slate-800 pb-1">
             <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
           </div>
@@ -98,6 +98,7 @@
           <div class="flex justify-between"><span class="text-slate-400">Assimetria (Skew):</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Z-Score máx (anomalia):</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Liquidez POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Aderência Φ (Volume):</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
         </div>
       </div>
 
@@ -122,6 +123,7 @@
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#0088FF]"></span> Compra</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FF1E42]"></span> Venda</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]" style="opacity:.45"></span> Rastro</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#00FF88]"></span> ABC</span>
         </div>
       </div>
 
@@ -163,9 +165,6 @@
               <option value="VALE3">VALE3 · Vale</option>
               <option value="ITUB4">ITUB4 · Itaú</option>
               <option value="BBDC4">BBDC4 · Bradesco</option>
-              <option value="EURUSD">EURUSD · Euro/Dólar</option>
-              <option value="GBPUSD">GBPUSD · Libra/Dólar</option>
-              <option value="USDJPY">USDJPY · Dólar/Iene</option>
             </select>
           </label>
           <label class="w-16 block">
@@ -188,6 +187,20 @@
               <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Até</span><input id="f-date-to" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
             </div>
             <button id="btn-clear-dates" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-xmark text-indigo-400"></i> Limpar datas</button>
+            <div class="pt-1.5 border-t border-slate-800/80 space-y-1.5">
+              <div class="flex items-center justify-between text-[10px] text-slate-400">
+                <span>Janela Horária (X)</span>
+                <div class="flex gap-1">
+                  <button id="time-preset-all" class="px-1.5 py-0.5 rounded bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-[9px] font-semibold">Dia</button>
+                  <button id="time-preset-am" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white text-[9px]">Manhã</button>
+                  <button id="time-preset-pm" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white text-[9px]">Tarde</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Início</span><input id="f-time-start" type="time" value="09:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+                <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Fim</span><input id="f-time-end" type="time" value="18:35" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
+              </div>
+            </div>
           </div>
         </details>
 
@@ -215,6 +228,16 @@
                 <div class="flex justify-between text-[9px] text-slate-500"><span>30m</span><span>15m</span><span>10m</span><span>5m</span><span>1m</span></div>
               </div>
             </div>
+            <label class="block pt-1">
+              <span class="text-slate-500 text-[9px] uppercase tracking-wider">Filtro de Liquidez (Volume)</span>
+              <select id="volume-filter" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500 mt-0.5">
+                <option value="all">Todo o Volume</option>
+                <option value="aboveavg">Acima da Média</option>
+                <option value="high">Apenas Cumes (&gt; 60%)</option>
+                <option value="medium">Zonas Médias (30–60%)</option>
+                <option value="low">Vales (&lt; 30%)</option>
+              </select>
+            </label>
           </div>
         </details>
 
@@ -247,8 +270,11 @@
             <div class="flex items-center justify-between"><span class="text-slate-300">Média Móvel</span>
               <label class="cv-switch"><input type="checkbox" id="toggle-ma"><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
+            <div class="flex items-center justify-between"><span class="text-slate-300">Ondas ABC <span class="text-slate-500">(pivôs A-B-C)</span></span>
+              <label class="cv-switch"><input type="checkbox" id="toggle-abc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+            </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
-              <label class="cv-switch"><input type="checkbox" id="toggle-trail"><span class="cv-track"><span class="cv-thumb"></span></span></label>
+              <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Consumo de Liquidez <span class="text-slate-500">(derretimento)</span></span>
               <label class="cv-switch"><input type="checkbox" id="toggle-liquidity"><span class="cv-track"><span class="cv-thumb"></span></span></label>
@@ -330,12 +356,12 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     const PLANE_WIDTH = 64, PLANE_DEPTH = 64, MAX_HEIGHT = 26;
-    const SESSION_START = 540, SESSION_END = 1080;
+    const SESSION_START = 540, SESSION_END = 1115;
     const COLORS = { gain: 0x00ff88, stop: 0xff3366, active: 0x22d3ee, buy: 0x0088ff, sell: 0xff1e42, gold: 0xffd700, buyPastel: 0x55718f, sellPastel: 0x9a6a6a, gray: 0x666666, path: 0x6366f1 };
     const FIB_LEVELS = [
       { key: '0.382', label: '38.2%', value: 0.382, color: 0x38bdf8 },
       { key: '0.5', label: '50%', value: 0.5, color: 0x818cf8 },
-      { key: '0.618', label: '61.8%', value: 0.618, color: 0xc084fc },
+      { key: '0.618', label: '61.8%', value: 0xc084fc },
       { key: '1.0', label: '100%', value: 1.0, color: 0xe2e8f0 },
       { key: '1.272', label: '127.2%', value: 1.272, color: 0xfbbf24 },
       { key: '1.618', label: '161.8% Φ', value: 1.618, color: 0xffd700 },
@@ -349,8 +375,8 @@
     let showWireframe = true;
     let showIntraBar = false;
     let showABC = true;
-    let showTrail = false;
-    let tzOffsetHours = -3;
+    let showTrail = true;
+    let tzOffsetHours = 0;
     let presetApplied = false;
     let filterStart = SESSION_START;
     let filterEnd = SESSION_END;
@@ -367,11 +393,12 @@
     let pocX = 0;
     let pocY = 0;
     let pocs = [];
-    let analytics = { pocPrice: null, delta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 };
+    let analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, pocDistance: 0, phiShare: 0, phiEnrich: 0 };
     let liquidity = 1.0;
     let simTimer = null;
     let simulateLiquidity = false;
     let symbol = 'WIN';
+    const ASSET_FILES = { WIN: 'amostra_win_m1.csv', WDO: 'amostra_wdo_m1.csv', IBOV: 'amostra_ind_m1.csv', PETR4: 'amostra_petr4_m1.csv', VALE3: 'amostra_vale3_m1.csv', ITUB4: 'amostra_itub4_m1.csv', BBDC4: 'amostra_bbdc4_m1.csv' };
     let nPocs = 3;
     let maPeriod = 20;
     let showPOC = true;
@@ -386,7 +413,9 @@
     let barTimes = new Set();
     let pivots = [];
     let trades = [];
+    let manualCsvMode = false;
     let ws = null;
+    let autoReconnect = true;
     let lastTick = null;
     let liveDelta = { buy: 0, sell: 0, net: 0 };
     let sampleLoaded = false;
@@ -394,6 +423,7 @@
 
     let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
     let terrainState = null;
+    let trailState = null;
     let activeData = [];
     let activeWindow = { days: new Set(), t0: 0, t1: 0 };
     let activeTradeGroups = [];
@@ -494,16 +524,86 @@
     function dirFrom(raw) { const s = String(raw || '').toUpperCase(); return ['COMPRA', 'C', 'BUY', 'LONG', '1'].includes(s) ? 'compra' : 'venda'; }
     function resultFrom(raw, r) { if (typeof r === 'number' && isFinite(r)) return r > 0 ? 'gain' : r < 0 ? 'stop' : 'filtered'; const s = String(raw || '').toLowerCase(); if (['target', 'gain', 'win', 'tp'].includes(s)) return 'gain'; if (['stop', 'loss', 'sl'].includes(s)) return 'stop'; return 'filtered'; }
 
-    function parseCSV(text) {
+    function normalizeAssetGroup(s) {
+      const u = String(s || '').trim().toUpperCase();
+      if (!u) return '';
+      if (u.startsWith('WIN')) return 'WIN';
+      if (u.startsWith('WDO')) return 'WDO';
+      if (u.startsWith('IND') || u === 'IBOV') return 'IBOV';
+      return u;
+    }
+
+    function matchesCurrentSymbol(itemSym) {
+      if (manualCsvMode || !itemSym) return true;
+      return normalizeAssetGroup(itemSym) === normalizeAssetGroup(symbol);
+    }
+
+    function getPriceDecimals(refP = scale.maxPrice) {
+      const grp = normalizeAssetGroup(symbol);
+      if (grp === 'WIN' || grp === 'IBOV') return 0;
+      if (grp === 'WDO') return 1;
+      if (isFinite(refP) && refP >= 10000) return 0;
+      if (isFinite(refP) && refP >= 1000) return 1;
+      return 2;
+    }
+
+    function fmtPrice(p, dec = getPriceDecimals(p)) {
+      if (!isFinite(p)) return '—';
+      return Number(p).toFixed(dec);
+    }
+
+    function getPriceBucketStep() {
+      const grp = normalizeAssetGroup(symbol);
+      if (grp === 'WIN' || grp === 'IBOV') return 50;
+      if (grp === 'WDO') return 2.5;
+      const rng = Math.max(0.05, scale.priceRange || 1);
+      const raw = rng / Math.max(12, priceBinsCount);
+      const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const norm = raw / mag;
+      const nice = norm <= 1.5 ? 1 : norm <= 3.5 ? 2 : norm <= 7.5 ? 5 : 10;
+      return Math.max(0.01, Number((nice * mag).toFixed(4)));
+    }
+
+    function bucketPrice(p) {
+      const step = getPriceBucketStep();
+      return Math.round(p / step) * step;
+    }
+
+    function parseLegsPivot(rawLegs, scenario, direction, result, rowSym) {
+      if (!rawLegs) return null;
+      const parts = String(rawLegs).split(';');
+      const map = {};
+      for (const part of parts) {
+        const seg = part.trim().split(':');
+        if (seg.length >= 5) {
+          const k = seg[0].toUpperCase();
+          const t0 = ts(seg[1]), p0 = num(seg[2]), t1 = ts(seg[3]), p1 = num(seg[4]);
+          if (t0 != null && t1 != null && isFinite(p0) && isFinite(p1)) map[k] = { t0, p0, t1, p1 };
+        }
+      }
+      if (!map.A || !map.B || !map.C) return null;
+      return {
+        symbol: rowSym,
+        o: { t: map.A.t0, m: todMin(map.A.t0), p: map.A.p0 },
+        a: { t: map.A.t1, m: todMin(map.A.t1), p: map.A.p1 },
+        b: { t: map.B.t1, m: todMin(map.B.t1), p: map.B.p1 },
+        c: { t: map.C.t1, m: todMin(map.C.t1), p: map.C.p1 },
+        scenario: scenario || '',
+        direction,
+        result,
+      };
+    }
+
+    function parseCSV(text, silent = false) {
       const head = text.slice(0, 500);
       const delim = head.includes(';') && !head.includes(',') ? ';' : ',';
       const lines = text.trim().split(/\r?\n/).filter((l) => l.trim());
-      if (lines.length < 2) { showToast('CSV vazio ou sem linhas suficientes.', true); return; }
+      if (lines.length < 2) { if (!silent) showToast('CSV vazio ou sem linhas suficientes.', true); return; }
       const split = (c) => { c = c.trim(); if (c.startsWith('"') && c.endsWith('"')) c = c.slice(1, -1).replace(/""/g, '"'); return c; };
       const headers = lines[0].split(delim).map(split).map((h) => h.trim());
       const keys = headers.map((h) => h.toLowerCase());
       const has = (a) => a.some((x) => keys.includes(x));
-      const rows = lines.slice(1).map((l) => { const c = l.split(delim).map(split); const o = {}; headers.forEach((h, i) => { o[h] = c[i]; }); return o; });
+      const rows = lines.slice(1).map((l) => { const c = l.split(delim).map(split); const o = {}; headers.forEach((h, i) => { o[h.toLowerCase()] = c[i]; }); return o; });
 
       let added = 0;
       if (has(['open', 'o']) && has(['high', 'h']) && has(['low', 'l']) && has(['close', 'c'])) {
@@ -516,8 +616,8 @@
           if (!isFinite(price)) continue;
           const open = num(r.open ?? r.o, price), high = num(r.high ?? r.h, price), low = num(r.low ?? r.l, price);
           let minuteOfDay = null;
-          const rawDate = dateIdx !== -1 ? r[headers[dateIdx]] : '';
-          let rawTime = timeIdx !== -1 ? r[headers[timeIdx]] : '';
+          const rawDate = dateIdx !== -1 ? r[keys[dateIdx]] : '';
+          let rawTime = timeIdx !== -1 ? r[keys[timeIdx]] : '';
           if (rawTime && rawTime.includes(':')) { const [hh, mm] = rawTime.split(':').map(Number); if (!isNaN(hh) && !isNaN(mm)) minuteOfDay = hh * 60 + mm; }
           if (minuteOfDay == null && rawDate && rawDate.includes(':')) { const part = rawDate.split(' ')[1] || rawDate; const [hh, mm] = part.split(':').map(Number); if (!isNaN(hh) && !isNaN(mm)) minuteOfDay = hh * 60 + mm; }
           if (minuteOfDay == null) minuteOfDay = 540 + ((added % 90) * 6);
@@ -537,25 +637,40 @@
           const entryPrice = num(r.entry ?? r.entrada ?? r.price);
           const exitPrice = num(r.exit_price ?? r.saida ?? r.close);
           if (entryTime == null || !isFinite(entryPrice)) continue;
+          const rowSym = String(r.symbol ?? r.simbolo ?? '').trim().toUpperCase();
           const dir = dirFrom(r.direction ?? r.side ?? r.lado);
           const res = resultFrom(r.exit_reason ?? r.status ?? r.resultado, num(r.result_r ?? r.resultado));
-          const trade = { id: r.key || r.ticket || `t${entryTime}`, direction: dir, scenario: r.scenario ?? r.cenario ?? '', entryTime, entryM: todMin(entryTime), entryPrice, exitTime: exitTime != null && exitTime > entryTime ? exitTime : null, exitM: exitTime != null ? todMin(exitTime) : null, exitPrice: isFinite(exitPrice) ? exitPrice : entryPrice, result: res, stop: num(r.stop), target: num(r.target ?? r.alvo) };
+          const trade = { id: r.key || r.ticket || `t${entryTime}_${added}`, symbol: rowSym, direction: dir, scenario: r.scenario ?? r.cenario ?? '', entryTime, entryM: todMin(entryTime), entryPrice, exitTime: exitTime != null && exitTime > entryTime ? exitTime : null, exitM: exitTime != null ? todMin(exitTime) : null, exitPrice: isFinite(exitPrice) ? exitPrice : entryPrice, result: res, stop: num(r.stop), target: num(r.target ?? r.alvo) };
           trades.push(trade);
-          pivots.push(derivePivot(trade));
+          const aT = ts(r.a_time), bT = ts(r.b_time), cT = ts(r.c_time);
+          const aP = num(r.a_price), bP = num(r.b_price), cP = num(r.c_price);
+          const oT = ts(r.o_time), oP = num(r.o_price);
+          if (aT != null && bT != null && cT != null && isFinite(aP) && isFinite(bP) && isFinite(cP)) {
+            const piv = { symbol: rowSym, a: { t: aT, m: todMin(aT), p: aP }, b: { t: bT, m: todMin(bT), p: bP }, c: { t: cT, m: todMin(cT), p: cP }, scenario: trade.scenario, direction: dir, result: res };
+            if (oT != null && isFinite(oP)) piv.o = { t: oT, m: todMin(oT), p: oP };
+            pivots.push(piv);
+          } else {
+            const legPiv = parseLegsPivot(r.legs, trade.scenario, dir, res, rowSym);
+            pivots.push(legPiv || derivePivot(trade));
+          }
           added++;
         }
       } else if (has(['a_time', 'a_price'])) {
         for (const r of rows) {
           const aT = ts(r.a_time), bT = ts(r.b_time), cT = ts(r.c_time);
           const aP = num(r.a_price), bP = num(r.b_price), cP = num(r.c_price);
+          const oT = ts(r.o_time), oP = num(r.o_price);
           if ([aT, bT, cT].some((x) => x == null) || [aP, bP, cP].some((x) => !isFinite(x))) continue;
-          pivots.push({ a: { t: aT, m: todMin(aT), p: aP }, b: { t: bT, m: todMin(bT), p: bP }, c: { t: cT, m: todMin(cT), p: cP }, scenario: r.scenario || '', direction: dirFrom(r.direction ?? r.side), result: resultFrom(r.result ?? r.exit_reason, num(r.result_r)) });
+          const rowSym = String(r.symbol ?? r.simbolo ?? '').trim().toUpperCase();
+          const piv = { symbol: rowSym, a: { t: aT, m: todMin(aT), p: aP }, b: { t: bT, m: todMin(bT), p: bP }, c: { t: cT, m: todMin(cT), p: cP }, scenario: r.scenario || '', direction: dirFrom(r.direction ?? r.side), result: resultFrom(r.result ?? r.exit_reason, num(r.result_r)) };
+          if (oT != null && isFinite(oP)) piv.o = { t: oT, m: todMin(oT), p: oP };
+          pivots.push(piv);
           added++;
         }
       }
       setBadge('csv');
       document.getElementById('badge-text').textContent = `CSV · ${symbol} (${added} regs)`;
-      showToast(`CSV carregado: ${added} registros mapeados.`);
+      if (!silent) showToast(`CSV carregado: ${added} registros mapeados.`);
     }
 
     function derivePivot(trade) {
@@ -564,10 +679,11 @@
       const b = { t: trade.entryTime - span * 60, m: trade.entryM - span, p: trade.entryPrice };
       const c = { t: trade.entryTime, m: trade.entryM, p: trade.entryPrice };
       let wave = Math.abs(trade.entryPrice - trade.exitPrice);
-      if (!isFinite(wave) || wave < 1) wave = 150;
+      const minWave = Math.max(0.05, trade.entryPrice * 0.0015);
+      if (!isFinite(wave) || wave < minWave) wave = minWave;
       if (trade.direction === 'compra') { a.p = trade.entryPrice - wave * 0.4; b.p = trade.entryPrice + wave * 0.6; }
       else { a.p = trade.entryPrice + wave * 0.4; b.p = trade.entryPrice - wave * 0.6; }
-      return { a, b, c, scenario: trade.scenario || '', direction: trade.direction, result: trade.result };
+      return { symbol: trade.symbol || '', a, b, c, scenario: trade.scenario || '', direction: trade.direction, result: trade.result };
     }
 
     function localDateKey(ts) {
@@ -639,7 +755,12 @@
       for (const d of activeData) { if (d.close < minP) minP = d.close; if (d.close > maxP) maxP = d.close; }
       if (priceMin != null) minP = priceMin;
       if (priceMax != null) maxP = priceMax;
-      if (!isFinite(minP)) { minP = 128000; maxP = 130000; }
+      if (!isFinite(minP)) {
+        const grp = normalizeAssetGroup(symbol);
+        if (grp === 'WDO') { minP = 5600; maxP = 5850; }
+        else if (grp === 'WIN' || grp === 'IBOV') { minP = 170000; maxP = 173000; }
+        else { minP = 10; maxP = 50; }
+      }
       scale = { minPrice: minP, maxPrice: maxP, minMin: filterStart, maxMin: filterEnd, priceRange: (maxP - minP) || 1, minRange: (filterEnd - filterStart) || 1 };
     }
 
@@ -647,13 +768,24 @@
     function normPrice(p) { return Math.max(0, Math.min(1, (p - scale.minPrice) / scale.priceRange)); }
     function worldX(m) { return (normTime(m) - 0.5) * PLANE_WIDTH; }
     function worldZ(p) { return (0.5 - normPrice(p)) * PLANE_DEPTH; }
+    function zFromPrice(p) {
+      if (viewMode === 'trail' && trailState) return (0.5 - Math.max(0, Math.min(1, (p - trailState.minPrice) / trailState.priceRange))) * PLANE_DEPTH;
+      return worldZ(p);
+    }
 
     function tiltMax() { return PLANE_DEPTH * Math.tan(priceTilt * Math.PI / 180); }
     function tiltYAt(z) { return (0.5 - z / PLANE_DEPTH) * tiltMax(); }
 
-    function priceFromZ(z) { return scale.minPrice + (0.5 - z / PLANE_DEPTH) * scale.priceRange; }
+    function priceFromZ(z) {
+      if (viewMode === 'trail' && trailState) return trailState.minPrice + (0.5 - z / PLANE_DEPTH) * trailState.priceRange;
+      return scale.minPrice + (0.5 - z / PLANE_DEPTH) * scale.priceRange;
+    }
     function timeFromX(x) { return scale.minMin + (x / PLANE_WIDTH + 0.5) * scale.minRange; }
-    function hexStr(hex) { return '#' + hex.toString(16).padStart(6, '0'); }
+    function hexStr(hex) {
+      if (typeof hex === 'string') return hex.startsWith('#') ? hex : '#' + hex;
+      const n = typeof hex === 'number' && isFinite(hex) ? hex : 0xffffff;
+      return '#' + n.toString(16).padStart(6, '0');
+    }
 
     function sampleHeight(x, z) {
       if (!terrainState) return 0;
@@ -663,9 +795,46 @@
       return (vol / terrainState.maxCellVol) * MAX_HEIGHT * zScaleFactor;
     }
 
+    function trailIndexForTime(timeSec, minuteOfDay) {
+      const slice = trailState?.slice;
+      if (!slice || !slice.length) return 0;
+      if (timeSec != null && isFinite(timeSec)) {
+        if (timeSec <= slice[0].time) return 0;
+        if (timeSec >= slice[slice.length - 1].time) return slice.length - 1;
+        let lo = 0, hi = slice.length - 1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (slice[mid].time === timeSec) return mid;
+          if (slice[mid].time < timeSec) lo = mid + 1;
+          else hi = mid - 1;
+        }
+        const i0 = Math.max(0, hi), i1 = Math.min(slice.length - 1, lo);
+        const dt = (slice[i1].time - slice[i0].time) || 1;
+        return i0 + (timeSec - slice[i0].time) / dt;
+      }
+      let bestIdx = 0, bestDiff = Infinity;
+      for (let i = 0; i < slice.length; i++) {
+        const diff = Math.abs(slice[i].minuteOfDay - minuteOfDay);
+        if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+      }
+      return bestIdx;
+    }
+
     function worldPoint(m, p, offset = 1.4) { const x = worldX(m), z = worldZ(p); return { x, y: tiltYAt(z) + sampleHeight(x, z) + offset, z }; }
 
-    function abcPoint(m, p) { return worldPoint(m, p, 1.8); }
+    function scenePoint(m, p, timeSec = null, offset = 1.4) {
+      if (viewMode === 'trail' && trailState && trailState.slice.length) {
+        const idx = trailIndexForTime(timeSec, m);
+        const x = (idx / (trailState.slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+        const z = zFromPrice(p);
+        const bar = trailState.slice[Math.max(0, Math.min(trailState.slice.length - 1, Math.round(idx)))];
+        const barH = Math.max(0.3, (bar.volume / trailState.maxVol) * MAX_HEIGHT * zScaleFactor);
+        return { x, y: tiltYAt(z) + barH + offset, z };
+      }
+      return worldPoint(m, p, offset);
+    }
+
+    function abcPoint(m, p, timeSec = null) { return scenePoint(m, p, timeSec, 1.8); }
 
     function clearGroup(g) {
       while (g.children.length) { const o = g.children.pop(); if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((mm) => mm.dispose()); } }
@@ -729,6 +898,7 @@
     }
 
     function renderTopographicView() {
+      trailState = null;
       document.getElementById('legend-x').textContent = 'Hora do Dia';
       document.getElementById('legend-y').textContent = 'Faixa de Preço';
       document.getElementById('tt-label-x').textContent = 'Janela Horária:';
@@ -790,11 +960,12 @@
         .slice(0, Math.max(1, nPocs))
         .filter((e) => e.v > 0)
         .map((e, i) => ({ price: minPrice + (e.y / (priceBinsCount - 1 || 1)) * priceRange, yIndex: e.y, xIndex: e.x, vol: e.v, level: i + 1 }));
-      terrainState = { displayGrid, maxCellVol };
+      terrainState = { displayGrid, rawGrid: grid, maxCellVol };
       computeAnalytics();
 
+      const dec = getPriceDecimals(minPrice + priceRange);
       const xLabels = []; for (let i = 0; i < timeBinsCount; i++) xLabels.push(fmtHM(Math.round(minMin + (i / (timeBinsCount - 1 || 1)) * minRange)));
-      const yLabels = []; for (let j = 0; j < priceBinsCount; j++) yLabels.push((minPrice + (j / (priceBinsCount - 1 || 1)) * priceRange).toFixed(0));
+      const yLabels = []; for (let j = 0; j < priceBinsCount; j++) yLabels.push(fmtPrice(minPrice + (j / (priceBinsCount - 1 || 1)) * priceRange, dec));
       buildBaseGridAndLabels(xLabels, yLabels);
 
       if (topoSubMode === 'mesh') {
@@ -820,7 +991,7 @@
         if (showIntraBar) {
           const items = [];
           for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) {
-            const vol = grid[x][y]; if (vol <= 0) continue;
+            const vol = displayGrid[x][y]; if (vol <= 0) continue;
             const nv = vol / maxCellVol, height = Math.max(0.25, nv * MAX_HEIGHT * zScaleFactor);
             const levels = []; for (let k = 0; k < 8; k++) levels.push(nv * (0.25 + 0.75 * (k / 7)));
             const zz = worldZ(minPrice + (y / (priceBinsCount - 1 || 1)) * priceRange);
@@ -832,13 +1003,14 @@
           sceneGroup.add(mesh); interactiveMeshes.push(mesh);
         } else {
           for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) {
-            const vol = grid[x][y]; if (vol <= 0) continue;
+            const vol = displayGrid[x][y]; if (vol <= 0) continue;
             const nv = vol / maxCellVol, height = Math.max(0.25, nv * MAX_HEIGHT * zScaleFactor), col = getThermalColor(nv);
             const geo = new THREE.BoxGeometry(cellW, height, cellD).translate(0, height / 2, 0);
             const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, metalness: 0.2, emissive: col, emissiveIntensity: nv * 0.25 }));
             const zz = worldZ(minPrice + (y / (priceBinsCount - 1 || 1)) * priceRange);
             mesh.position.set(worldX(minMin + (x / (timeBinsCount - 1 || 1)) * minRange), tiltYAt(zz) + height / 2, zz);
-            mesh.userData = { type: 'cell', timeText: xLabels[x], priceText: `${minPrice + (y / priceBinsCount) * priceRange} - ${minPrice + ((y + 1) / priceBinsCount) * priceRange}`, volume: vol, normVol: nv };
+            const pLo = minPrice + (y / priceBinsCount) * priceRange, pHi = minPrice + ((y + 1) / priceBinsCount) * priceRange;
+            mesh.userData = { type: 'cell', timeText: xLabels[x], priceText: `${fmtPrice(pLo, dec)} - ${fmtPrice(pHi, dec)}`, volume: vol, normVol: nv };
             sceneGroup.add(mesh); interactiveMeshes.push(mesh);
             if (showWireframe && nv > 0.15) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })); e.position.copy(mesh.position); sceneGroup.add(e); }
           }
@@ -855,11 +1027,33 @@
       terrainState = null;
       const maxBars = showIntraBar ? 240 : 520;
       const slice = activeData.slice(-maxBars);
-      if (!slice.length) return;
-      const prices = slice.map((d) => d.close), vols = slice.map((d) => d.volume);
-      const minPrice = Math.min(...prices), maxPrice = Math.max(...prices), priceRange = (maxPrice - minPrice) || 1, maxVol = Math.max(...vols) || 1;
+      if (!slice.length) { trailState = null; return; }
+      let minPrice = Infinity, maxPrice = -Infinity, maxVol = 0;
+      for (const d of slice) {
+        if (d.low < minPrice) minPrice = d.low;
+        if (d.high > maxPrice) maxPrice = d.high;
+        if (d.volume > maxVol) maxVol = d.volume;
+      }
+      const priceRange = (maxPrice - minPrice) || 1;
+      maxVol = maxVol || 1;
+      trailState = { slice, minPrice, maxPrice, priceRange, maxVol };
+
+      const buckets = new Map();
+      let maxBucketIdx = 0;
+      slice.forEach((d, idx) => {
+        const k = bucketPrice(d.close);
+        const cur = (buckets.get(k) || 0) + d.volume;
+        buckets.set(k, cur);
+        if (cur > (buckets.get(pocPrice) || 0)) maxBucketIdx = idx;
+      });
+      const sortedPocs = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
+      pocPrice = sortedPocs.length ? sortedPocs[0][0] : slice[slice.length - 1].close;
+      pocs = sortedPocs.slice(0, Math.max(1, nPocs)).map(([price, vol], i) => ({ price, vol, level: i + 1, xIndex: maxBucketIdx, yIndex: 0 }));
+      computeAnalytics(slice);
+
+      const dec = getPriceDecimals(maxPrice);
       const xLabels = [slice[0].timeLabel, '', '', slice[Math.floor(slice.length / 2)].timeLabel, '', '', slice[slice.length - 1].timeLabel];
-      const yLabels = [minPrice.toFixed(0), ((minPrice + maxPrice) / 2).toFixed(0), maxPrice.toFixed(0)];
+      const yLabels = [fmtPrice(minPrice, dec), fmtPrice((minPrice + maxPrice) / 2, dec), fmtPrice(maxPrice, dec)];
       buildBaseGridAndLabels(xLabels, yLabels);
 
       const linePoints = [];
@@ -872,7 +1066,7 @@
           const x = (idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
           const zLow = zLocal(d.low), zHigh = zLocal(d.high), zMin = Math.min(zLow, zHigh), zMax = Math.max(zLow, zHigh);
           const span = (zMax - zMin) || 0.5, nLevels = 8;
-          const lo = d.low, hi = d.high, sigma = Math.max((hi - lo) / 4, 1);
+          const lo = d.low, hi = d.high, sigma = Math.max((hi - lo) / 4, priceRange * 0.005);
           const weights = []; let wsum = 0;
           for (let k = 0; k < nLevels; k++) { const p = lo + (k + 0.5) * (hi - lo) / nLevels; const w = Math.exp(-0.5 * Math.pow((p - d.close) / sigma, 2)); weights.push(w); wsum += w; }
           const levels = weights.map((w) => nv * (w / wsum) * nLevels * 0.5);
@@ -894,7 +1088,7 @@
           const geo = new THREE.BoxGeometry(0.28, height, 0.28).translate(0, height / 2, 0);
           const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, emissive: col, emissiveIntensity: nv * 0.3 }));
           mesh.position.set(x, tiltYAt(z) + height / 2, z);
-          mesh.userData = { type: 'cell', timeText: `Pregão ${d.dayIndex + 1} • ${d.timeLabel}`, priceText: d.close.toFixed(2), volume: d.volume, normVol: nv };
+          mesh.userData = { type: 'cell', timeText: `${fmtDate(d.time)} • ${d.timeLabel}`, priceText: fmtPrice(d.close, dec), volume: d.volume, normVol: nv };
           sceneGroup.add(mesh); interactiveMeshes.push(mesh);
           linePoints.push(new THREE.Vector3(x, tiltYAt(z) + 0.15, z));
         });
@@ -903,18 +1097,13 @@
       sceneGroup.add(new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: COLORS.path, transparent: true, opacity: 0.7 })));
 
       if (showPOC) {
-        let poc = refPrice;
-        if (poc == null) {
-          const buckets = new Map();
-          for (const d of slice) { const k = Math.round(d.close / 50) * 50; buckets.set(k, (buckets.get(k) || 0) + d.volume); }
-          let bv = 0; buckets.forEach((v, k) => { if (v > bv) { bv = v; poc = k; } });
-        }
+        const poc = refPrice ?? pocPrice;
         if (poc != null && poc >= minPrice && poc <= maxPrice) {
           const zr = zLocal(poc);
           const rg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(zr) + 0.5, zr), new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(zr) + 0.5, zr)]);
           sceneGroup.add(new THREE.Line(rg, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.85 })));
-          const rl = makeTextSprite(String(Math.round(poc)), '#22d3ee', 6, 1.4);
-          rl.position.set(PLANE_WIDTH / 2 + 3, 0.6, zr);
+          const rl = makeTextSprite(fmtPrice(poc, dec), '#22d3ee', 6.5, 1.4);
+          rl.position.set(PLANE_WIDTH / 2 + 3.2, 0.6, zr);
           sceneGroup.add(rl);
         }
       }
@@ -938,11 +1127,9 @@
       }
 
       drawDayBoundaries(slice, PLANE_DEPTH / 2);
-      document.getElementById('stat-points').textContent = slice.length.toLocaleString('pt-BR');
-      document.getElementById('stat-price-range').textContent = `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)}`;
-      const pLabel = 'Datas';
-      const pel = document.getElementById('stat-period');
-      if (pel) pel.textContent = `${pLabel} · ${periodDates()}`;
+      const maxSliceBar = slice.reduce((a, b) => (b.volume > a.volume ? b : a), slice[0]);
+      updateStats(0, 0, [maxSliceBar.timeLabel], [fmtPrice(pocPrice ?? slice[slice.length - 1].close, dec)], maxVol, slice);
+      document.getElementById('stat-price-range').textContent = `${fmtPrice(minPrice, dec)} - ${fmtPrice(maxPrice, dec)}`;
     }
 
     function makeArrowShape() {
@@ -1034,6 +1221,10 @@
       const vb = fibAnchorValue(B);
       const span = vb - va;
       const h = tiltMax() + MAX_HEIGHT * zScaleFactor + 2;
+      const maxRefVol = terrainState ? terrainState.maxCellVol : (trailState ? trailState.maxVol : 1);
+      const volScale = (MAX_HEIGHT * zScaleFactor) || 1;
+      const rVolA = A.realVol ?? (va / volScale) * maxRefVol;
+      const rVolB = B.realVol ?? (vb / volScale) * maxRefVol;
 
       for (const lv of FIB_LEVELS) {
         if (!fibLevels.has(lv.key)) continue;
@@ -1041,26 +1232,30 @@
         const col = hexStr(lv.color);
         const mat = new THREE.MeshBasicMaterial({ color: lv.color, transparent: true, opacity: fibOpacity, side: THREE.DoubleSide, depthWrite: false });
         if (fibAxis === 'volume') {
-          const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_DEPTH).rotateX(-Math.PI / 2), mat);
-          plane.position.set(0, v, 0);
+          const geo = new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_DEPTH, 1, 8).rotateX(-Math.PI / 2);
+          const pos = geo.attributes.position;
+          for (let i = 0; i < pos.count; i++) pos.setY(i, tiltYAt(pos.getZ(i)) + v);
+          geo.computeVertexNormals();
+          const plane = new THREE.Mesh(geo, mat);
           overlayGroup.add(plane);
-          const lbl = makeTextSprite(lv.label, col, 6, 1.4);
-          lbl.position.set(PLANE_WIDTH / 2 + 3, v, 0);
+          const realVol = Math.max(0, rVolA + lv.value * (rVolB - rVolA));
+          const lbl = makeTextSprite(`${lv.label} · ${Math.round(realVol).toLocaleString('pt-BR')} vol`, col, 10.5, 1.6);
+          lbl.position.set(PLANE_WIDTH / 2 + 4.8, tiltYAt(0) + v, 0);
           overlayGroup.add(lbl);
         } else if (fibAxis === 'price') {
-          const z = worldZ(v);
+          const z = zFromPrice(v);
           const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, h), mat);
           plane.position.set(0, h / 2, z);
           overlayGroup.add(plane);
-          const lbl = makeTextSprite(`${lv.label} · ${Math.round(v)}`, col, 6, 1.4);
-          lbl.position.set(PLANE_WIDTH / 2 + 3, 0.6, z);
+          const lbl = makeTextSprite(`${lv.label} · ${fmtPrice(v)}`, col, 7.5, 1.5);
+          lbl.position.set(PLANE_WIDTH / 2 + 3.5, 0.6, z);
           overlayGroup.add(lbl);
         } else {
           const x = worldX(v);
           const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_DEPTH, h).rotateY(Math.PI / 2), mat);
           plane.position.set(x, h / 2, 0);
           overlayGroup.add(plane);
-          const lbl = makeTextSprite(`${lv.label} · ${fmtHM(Math.round(v))}`, col, 6, 1.4);
+          const lbl = makeTextSprite(`${lv.label} · ${fmtHM(Math.round(v))}`, col, 7, 1.5);
           lbl.position.set(x, h + 1, PLANE_DEPTH / 2 + 2);
           overlayGroup.add(lbl);
         }
@@ -1089,30 +1284,29 @@
     }
 
     function renderAnomalies() {
-      if (!terrainState || !activeData.length) return;
+      const src = viewMode === 'trail' && trailState ? trailState.slice : activeData;
+      if (!src.length) return;
       let meanVol = 0, cnt = 0;
-      for (const b of activeData) { meanVol += b.volume; cnt++; }
+      for (const b of src) { meanVol += b.volume; cnt++; }
       meanVol = cnt ? meanVol / cnt : 0;
       let stdVol = 0;
-      for (const b of activeData) stdVol += Math.pow(b.volume - meanVol, 2);
+      for (const b of src) stdVol += Math.pow(b.volume - meanVol, 2);
       stdVol = cnt ? Math.sqrt(stdVol / cnt) : 0;
       if (!stdVol) return;
       let shown = 0;
-      for (const b of activeData) {
+      for (const b of src) {
         const zs = (b.volume - meanVol) / stdVol;
         if (zs < 2.5) continue;
         if (shown++ > 30) break;
-        const x = worldX(b.minuteOfDay);
-        const z = worldZ(b.close);
-        const y = tiltYAt(z) + sampleHeight(x, z) + 0.5;
+        const pt = scenePoint(b.minuteOfDay, b.close, b.time, 0.5);
         const mk = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 10), new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85 }));
-        mk.position.set(x, y, z);
+        mk.position.set(pt.x, pt.y, pt.z);
         overlayGroup.add(mk);
       }
     }
 
     function renderMATopo() {
-      if (!showMA || maPeriod <= 1 || !activeData.length) return;
+      if (viewMode !== 'topographic' || !showMA || maPeriod <= 1 || !activeData.length) return;
       const sorted = [...activeData].sort((a, b) => a.time - b.time);
       const maVal = new Map();
       let sum = 0;
@@ -1138,12 +1332,59 @@
     function renderReferenceLine() {
       const price = refPrice ?? pocPrice;
       if (!showPOC || price == null) return;
-      const z = worldZ(price);
+      const z = zFromPrice(price);
       const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-PLANE_WIDTH / 2, 0.4, z),
-        new THREE.Vector3(PLANE_WIDTH / 2, 0.4, z),
+        new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
+        new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
       ]);
       overlayGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.5, depthWrite: false })));
+    }
+
+    function renderABCWaves() {
+      if (!showABC) return;
+      const isTrail = viewMode === 'trail';
+      if (isTrail && (!trailState || !trailState.slice.length)) return;
+      const tMin = isTrail ? trailState.slice[0].time : -Infinity;
+      const tMax = isTrail ? trailState.slice[trailState.slice.length - 1].time : Infinity;
+      const visible = [];
+      for (const piv of pivots) {
+        if (!matchesCurrentSymbol(piv.symbol)) continue;
+        if (!inActiveWindow(piv.c.t) && !inActiveWindow(piv.a.t)) continue;
+        if (isTrail && (piv.c.t < tMin || piv.a.t > tMax)) continue;
+        if (piv.c.m < scale.minMin || piv.c.m > scale.maxMin) continue;
+        visible.push(piv);
+      }
+      const sliceVis = visible.slice(-80);
+      const labelStart = Math.max(0, sliceVis.length - 20);
+      sliceVis.forEach((piv, wIdx) => {
+        const rawPts = piv.o ? [piv.o, piv.a, piv.b, piv.c] : [piv.a, piv.b, piv.c];
+        const labels = piv.o ? ['0', 'A', 'B', 'C'] : ['A', 'B', 'C'];
+        const worldPts = rawPts.map((pt) => abcPoint(pt.m, pt.p, pt.t));
+        const col = piv.result === 'gain' ? COLORS.gain : piv.result === 'stop' ? COLORS.stop : COLORS.active;
+        const pos = [];
+        worldPts.forEach((p) => pos.push(p.x, p.y, p.z));
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const mat = piv.result === 'filtered'
+          ? new THREE.LineDashedMaterial({ color: COLORS.gray, dashSize: 0.6, gapSize: 0.4, transparent: true, opacity: 0.55 })
+          : new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
+        const line = new THREE.Line(geo, mat);
+        if (piv.result === 'filtered') line.computeLineDistances();
+        overlayGroup.add(line);
+        worldPts.forEach((p, idx) => {
+          const sph = new THREE.Mesh(
+            new THREE.SphereGeometry(idx === worldPts.length - 1 ? 0.34 : 0.22, 10, 10),
+            new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 })
+          );
+          sph.position.set(p.x, p.y, p.z);
+          overlayGroup.add(sph);
+          if (wIdx >= labelStart && idx > 0) {
+            const sp = makeTextSprite(labels[idx], hexStr(col), 3.4, 0.85);
+            sp.position.set(p.x, p.y + 0.9, p.z);
+            overlayGroup.add(sp);
+          }
+        });
+      });
     }
 
     function renderOverlay() {
@@ -1152,28 +1393,34 @@
       tradeGroupRefs = [];
       priceMarker = null;
       priceLine = null;
-      if (viewMode !== 'topographic') return;
+      const isTrail = viewMode === 'trail';
+      if (isTrail && (!trailState || !trailState.slice.length)) return;
+      const tMin = isTrail ? trailState.slice[0].time : -Infinity;
+      const tMax = isTrail ? trailState.slice[trailState.slice.length - 1].time : Infinity;
       if (showTrail) {
         for (const trade of trades) {
+          if (!matchesCurrentSymbol(trade.symbol)) continue;
           if (!inActiveWindow(trade.entryTime)) continue;
+          if (isTrail && (trade.entryTime > tMax || (trade.exitTime && trade.exitTime < tMin))) continue;
           const g = new THREE.Group();
           const isBuy = trade.direction === 'compra';
           const open = !trade.exitTime;
           const dirColor = isBuy ? COLORS.buy : COLORS.sell;
           const pastel = isBuy ? COLORS.buyPastel : COLORS.sellPastel;
-          const entry = worldPoint(trade.entryM, trade.entryPrice);
+          const entry = scenePoint(trade.entryM, trade.entryPrice, trade.entryTime);
           const entryArrow = makeArrow(trade.direction, open ? COLORS.gold : dirColor, 0.9);
           entryArrow.position.set(entry.x, entry.y, entry.z); g.add(entryArrow);
           addAnchorBeam(g, entry.x, entry.y, entry.z, dirColor);
 
-          const pathPts = [{ m: trade.entryM, p: trade.entryPrice }];
+          const pathPts = [{ m: trade.entryM, p: trade.entryPrice, t: trade.entryTime }];
+          const barSrc = isTrail ? trailState.slice : activeData;
           if (trade.exitTime) {
-            for (const b of activeData) { if (b.time > trade.entryTime && b.time < trade.exitTime) pathPts.push({ m: b.minuteOfDay, p: b.close }); }
-            pathPts.push({ m: trade.exitM, p: trade.exitPrice });
+            for (const b of barSrc) { if (b.time > trade.entryTime && b.time < trade.exitTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
+            pathPts.push({ m: trade.exitM, p: trade.exitPrice, t: trade.exitTime });
           } else {
-            for (const b of activeData) { if (b.time > trade.entryTime) pathPts.push({ m: b.minuteOfDay, p: b.close }); }
+            for (const b of barSrc) { if (b.time > trade.entryTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
           }
-          const worldPts = pathPts.map((pt) => worldPoint(pt.m, pt.p));
+          const worldPts = pathPts.map((pt) => scenePoint(pt.m, pt.p, pt.t));
           const pos = []; worldPts.forEach((p) => pos.push(p.x, p.y, p.z));
           const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
           const trailLine = new THREE.Line(pg, new THREE.LineBasicMaterial({ color: COLORS.gold, transparent: true, opacity: open ? 0.9 : 0.25 }));
@@ -1182,7 +1429,7 @@
           const step = Math.max(1, Math.floor(worldPts.length / 160));
           for (let i = 1; i < worldPts.length - (open ? 1 : 0); i += step) { const p = worldPts[i]; const a = makeArrow(trade.direction, pastel, 0.32, { flat: true }); a.position.set(p.x, p.y, p.z); g.add(a); }
 
-          if (!open) { const exit = worldPoint(trade.exitM, trade.exitPrice); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); addAnchorBeam(g, exit.x, exit.y, exit.z, dirColor); g.userData.exitArrow = ea; }
+          if (!open) { const exit = scenePoint(trade.exitM, trade.exitPrice, trade.exitTime); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); addAnchorBeam(g, exit.x, exit.y, exit.z, dirColor); g.userData.exitArrow = ea; }
           else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip, trade }; activeTradeGroups.push(g); }
           g.userData.trade = trade;
           g.userData.trailLine = trailLine;
@@ -1193,6 +1440,7 @@
           tradeGroupRefs.push(g);
         }
       }
+      renderABCWaves();
       renderReferenceLine();
       renderMATopo();
       renderFibonacci();
@@ -1202,14 +1450,13 @@
     }
 
     function renderPriceMarker() {
-      if (!activeData.length) return;
-      const last = activeData[activeData.length - 1];
+      const src = viewMode === 'trail' && trailState ? trailState.slice : activeData;
+      if (!src.length) return;
+      const last = src[src.length - 1];
       const price = lastTick ? lastTick.price : last.close;
       const time = lastTick ? lastTick.time : last.time;
       const m = todMin(time);
-      const x = worldX(m);
-      const z = worldZ(price);
-      const y = tiltYAt(z) + sampleHeight(x, z) + 1.3;
+      const pt = scenePoint(m, price, time, 1.3);
       if (!priceMarker) {
         const g = new THREE.Group();
         const glow = makeGlowSprite(0xffffff, 6);
@@ -1223,8 +1470,8 @@
         priceLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, depthWrite: false }));
         overlayGroup.add(priceLine);
       }
-      priceMarker.position.set(x, y, z);
-      if (priceLine) priceLine.position.z = z;
+      priceMarker.position.set(pt.x, pt.y, pt.z);
+      if (priceLine) priceLine.position.z = pt.z;
     }
 
     function setTradeHighlight(group, on) {
@@ -1241,9 +1488,10 @@
     function showTradeSummary(trade) {
       const dir = trade.direction === 'compra' ? 'COMPRA' : 'VENDA';
       const res = trade.result === 'gain' ? 'GAIN' : trade.result === 'stop' ? 'STOP' : 'ABERTA';
+      const dec = getPriceDecimals(trade.entryPrice);
       let pts = null;
       if (trade.exitPrice != null) pts = trade.direction === 'compra' ? trade.exitPrice - trade.entryPrice : trade.entryPrice - trade.exitPrice;
-      const parts = [`${dir} ${symbol}`, trade.scenario || '', `Entrada ${trade.entryPrice.toFixed(0)} → ${trade.exitPrice != null ? trade.exitPrice.toFixed(0) : '—'}`, `${res}${pts != null ? ' (' + (pts >= 0 ? '+' : '') + pts.toFixed(0) + ' pts)' : ''}`];
+      const parts = [`${dir} ${symbol}`, trade.scenario || '', `Entrada ${fmtPrice(trade.entryPrice, dec)} → ${trade.exitPrice != null ? fmtPrice(trade.exitPrice, dec) : '—'}`, `${res}${pts != null ? ' (' + (pts >= 0 ? '+' : '') + pts.toFixed(dec) + ' pts)' : ''}`];
       showToast(parts.filter(Boolean).join(' · '));
     }
 
@@ -1256,23 +1504,26 @@
       return `${fmt(sorted[0])} … ${fmt(sorted[sorted.length - 1])}`;
     }
 
-    function computeAnalytics() {
-      if (!activeData.length) { analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 }; return; }
+    function computeAnalytics(barsSrc = activeData) {
+      if (!barsSrc.length) {
+        analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, pocDistance: 0, phiShare: 0, phiEnrich: 0 };
+        return;
+      }
       let wsum = 0, mean = 0;
-      for (const b of activeData) { mean += b.close * b.volume; wsum += b.volume; }
+      for (const b of barsSrc) { mean += b.close * b.volume; wsum += b.volume; }
       mean = wsum ? mean / wsum : 0;
       let vvar = 0, vskew = 0;
-      for (const b of activeData) { const d = b.close - mean; vvar += b.volume * d * d; vskew += b.volume * d * d * d; }
+      for (const b of barsSrc) { const d = b.close - mean; vvar += b.volume * d * d; vskew += b.volume * d * d * d; }
       const vwsd = wsum ? Math.sqrt(vvar / wsum) : 0;
       const skew = (wsum && vwsd > 0) ? (vskew / wsum) / Math.pow(vwsd, 3) : 0;
 
       const deltaMap = new Map();
       const volMap = new Map();
       let delta = 0;
-      for (const b of activeData) {
+      for (const b of barsSrc) {
         const d = b.volume * (b.close >= b.open ? 1 : -1);
         delta += d;
-        const k = Math.round(b.close / 50) * 50;
+        const k = bucketPrice(b.close);
         deltaMap.set(k, (deltaMap.get(k) || 0) + d);
         volMap.set(k, (volMap.get(k) || 0) + b.volume);
       }
@@ -1280,25 +1531,39 @@
       let pocDelta = 0, pocVol = 0;
       const n = Math.min(pocs.length || 0, Math.max(1, nPocs));
       for (let i = 0; i < n; i++) {
-        const k = Math.round(pocs[i].price / 50) * 50;
+        const k = bucketPrice(pocs[i].price);
         pocDelta += deltaMap.get(k) || 0;
         pocVol += volMap.get(k) || 0;
       }
       const absorption = pocVol ? Math.max(0, Math.min(1, 1 - Math.abs(pocDelta) / pocVol)) : 0.5;
 
+      let maxBucketVol = 0;
+      volMap.forEach((v) => { if (v > maxBucketVol) maxBucketVol = v; });
+      let nonPocVol = 0, phiVol = 0;
+      if (maxBucketVol > 0) {
+        volMap.forEach((v) => {
+          if (v <= 0 || v >= maxBucketVol * 0.999) return;
+          nonPocVol += v;
+          const r = v / maxBucketVol;
+          if (Math.abs(r - 0.382) <= 0.04 || Math.abs(r - 0.500) <= 0.04 || Math.abs(r - 0.618) <= 0.04) phiVol += v;
+        });
+      }
+      const phiShare = nonPocVol > 0 ? phiVol / nonPocVol : 0;
+      const phiEnrich = phiShare / 0.24;
+
       let meanVol = 0, cnt = 0;
-      for (const b of activeData) { meanVol += b.volume; cnt++; }
+      for (const b of barsSrc) { meanVol += b.volume; cnt++; }
       meanVol = cnt ? meanVol / cnt : 0;
       let stdVol = 0;
-      for (const b of activeData) stdVol += Math.pow(b.volume - meanVol, 2);
+      for (const b of barsSrc) stdVol += Math.pow(b.volume - meanVol, 2);
       stdVol = cnt ? Math.sqrt(stdVol / cnt) : 0;
       let maxZ = 0;
-      for (const b of activeData) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
+      for (const b of barsSrc) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
 
-      const lastPrice = activeData[activeData.length - 1].close;
+      const lastPrice = barsSrc[barsSrc.length - 1].close;
       const pocDistance = pocPrice != null ? lastPrice - pocPrice : 0;
 
-      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, pocDistance };
+      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, pocDistance, phiShare, phiEnrich };
     }
 
     function renderPiP() {
@@ -1312,7 +1577,7 @@
       let lo = Infinity, hi = -Infinity;
       for (const b of bars) { if (b.low < lo) lo = b.low; if (b.high > hi) hi = b.high; }
       const range = (hi - lo) || 1;
-      const padT = 8, padB = 16, padR = 46, padL = 6;
+      const padT = 8, padB = 16, padR = 50, padL = 6;
       const cw = (W - padL - padR) / bars.length;
       const py = (p) => padT + (hi - p) / range * (H - padT - padB);
       for (let i = 0; i < bars.length; i++) {
@@ -1350,7 +1615,7 @@
       if (showPOC && bars.length) {
         const bucket = {};
         for (const b of bars) {
-          const k = Math.round(b.close / 50) * 50;
+          const k = bucketPrice(b.close);
           bucket[k] = (bucket[k] || 0) + b.volume;
         }
         const pipPocs = Object.entries(bucket).sort((a, b) => b[1] - a[1]).slice(0, Math.max(1, nPocs)).map(([p]) => Number(p));
@@ -1368,6 +1633,7 @@
         }
       }
       const last = bars[bars.length - 1];
+      const dec = getPriceDecimals(hi);
       const ly = py(last.close);
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 1;
@@ -1378,30 +1644,32 @@
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = '#e2e8f0';
-      ctx.font = '600 11px monospace';
+      ctx.font = '600 10px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(last.close.toFixed(0), W - padR + 3, ly + 4);
+      ctx.fillText(fmtPrice(last.close, dec), W - padR + 3, ly + 4);
       ctx.fillStyle = '#64748b';
       ctx.font = '9px monospace';
-      ctx.fillText(hi.toFixed(0), W - padR + 3, padT + 9);
-      ctx.fillText(lo.toFixed(0), W - padR + 3, H - padB - 2);
-      ctx.textAlign = 'center';
+      ctx.fillText(fmtPrice(hi, dec), W - padR + 3, padT + 9);
+      ctx.fillText(fmtPrice(lo, dec), W - padR + 3, H - padB - 2);
       const times = [0, Math.floor((bars.length - 1) / 2), bars.length - 1];
-      for (const idx of times) {
+      times.forEach((idx, ti) => {
         const b = bars[idx];
-        const x = padL + idx * cw + cw / 2;
+        ctx.textAlign = ti === 0 ? 'left' : ti === 2 ? 'right' : 'center';
+        const x = ti === 0 ? padL : ti === 2 ? W - padR : padL + idx * cw + cw / 2;
         ctx.fillText(fmtHM(b.minuteOfDay), x, H - 4);
-      }
+      });
       const t = document.getElementById('pip-title');
       if (t) t.textContent = `${symbol} · M1 · ${fmtHM(last.minuteOfDay)}`;
     }
 
-    function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol) {
-      document.getElementById('stat-points').textContent = activeData.length.toLocaleString('pt-BR');
-      document.getElementById('stat-price-range').textContent = `${scale.minPrice.toFixed(0)} - ${scale.maxPrice.toFixed(0)}`;
+    function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol, barsSrc = activeData) {
+      const dec = getPriceDecimals(scale.maxPrice);
+      const visTrades = trades.filter((t) => matchesCurrentSymbol(t.symbol) && inActiveWindow(t.entryTime));
+      document.getElementById('stat-points').textContent = barsSrc.length.toLocaleString('pt-BR');
+      document.getElementById('stat-price-range').textContent = `${fmtPrice(scale.minPrice, dec)} - ${fmtPrice(scale.maxPrice, dec)}`;
       document.getElementById('stat-poc').textContent = Math.round(maxCellVol).toLocaleString('pt-BR');
-      document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY]} (${xLabels[pocX]})`;
-      document.getElementById('stat-abc').textContent = `${trades.length} (${trades.filter((t) => t.result === 'gain').length}G/${trades.filter((t) => t.result === 'stop').length}S)`;
+      document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY] ?? '—'} (${xLabels[pocX] ?? '—'})`;
+      document.getElementById('stat-abc').textContent = `${visTrades.length} (${visTrades.filter((t) => t.result === 'gain').length}G/${visTrades.filter((t) => t.result === 'stop').length}S)`;
       const pLabel = 'Datas';
       const el = document.getElementById('stat-period');
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
@@ -1410,17 +1678,27 @@
       set('an-delta', `${an.delta >= 0 ? '+' : ''}${Math.round(an.delta).toLocaleString('pt-BR')}`);
       set('an-poc-delta', `${an.pocDelta >= 0 ? '+' : ''}${Math.round(an.pocDelta).toLocaleString('pt-BR')}${an.pocDelta >= 0 ? ' ▲' : ' ▼'}`);
       set('an-absorption', `${Math.round(an.absorption * 100)}%`);
-      set('an-vwsd', `${an.vwsd.toFixed(1)} pts`);
+      set('an-vwsd', `${an.vwsd.toFixed(dec > 0 ? dec : 1)} pts`);
       set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
       set('an-zscore', `${an.maxZ.toFixed(1)}σ`);
       set('an-liquidity', `${Math.round(liquidity * 100)}%`);
-      set('an-poc-dist', an.pocPrice == null ? '—' : `${an.pocDistance >= 0 ? '+' : ''}${Math.round(an.pocDistance)} pts ${an.pocDistance >= 0 ? '(acima)' : '(abaixo)'}`);
+      set('an-poc-dist', an.pocPrice == null ? '—' : `${an.pocDistance >= 0 ? '+' : ''}${an.pocDistance.toFixed(dec)} pts ${an.pocDistance >= 0 ? '(acima)' : '(abaixo)'}`);
       const pd = document.getElementById('an-poc-dist');
       if (pd) pd.className = 'font-mono font-semibold ' + (an.pocDistance >= 0 ? 'text-emerald-400' : 'text-rose-400');
       const ab = document.getElementById('an-abs-bar');
       if (ab) ab.style.width = `${Math.round(an.absorption * 100)}%`;
       const pc = document.getElementById('an-poc-delta');
       if (pc) pc.className = 'font-mono font-semibold ' + (an.pocDelta >= 0 ? 'text-emerald-400' : 'text-rose-400');
+      const phiEl = document.getElementById('an-phi-score');
+      if (phiEl) {
+        if (an.phiEnrich > 0) {
+          phiEl.textContent = `${Math.round(an.phiShare * 100)}% (${an.phiEnrich.toFixed(2)}x)`;
+          phiEl.className = 'font-mono font-semibold ' + (an.phiEnrich >= 1.15 ? 'text-emerald-400' : an.phiEnrich >= 0.9 ? 'text-amber-300' : 'text-slate-400');
+        } else {
+          phiEl.textContent = '—';
+          phiEl.className = 'font-mono font-semibold text-slate-500';
+        }
+      }
     }
 
     function updateVisualization() {
@@ -1470,20 +1748,33 @@
       const obj = hits[0].object;
       tooltip.style.left = `${Math.min(window.innerWidth - 230, event.clientX + 16)}px`;
       tooltip.style.top = `${Math.min(window.innerHeight - 150, event.clientY + 16)}px`;
-      if (obj.userData.type === 'cells') { tooltip.classList.add('hidden'); return; }
-      tooltip.classList.remove('hidden');
-      if (obj.userData.type === 'terrain' && terrainState) {
+      const dec = getPriceDecimals(scale.maxPrice);
+      if ((obj.userData.type === 'terrain' || obj.userData.type === 'cells') && terrainState) {
+        tooltip.classList.remove('hidden');
         const p = hits[0].point;
         const tx = Math.max(0, Math.min(timeBinsCount - 1, Math.floor((p.x / PLANE_WIDTH + 0.5) * timeBinsCount)));
         const py = Math.max(0, Math.min(priceBinsCount - 1, Math.floor((0.5 - p.z / PLANE_DEPTH) * priceBinsCount)));
         const vol = terrainState.displayGrid[tx][py], nv = vol / terrainState.maxCellVol;
-        document.getElementById('tt-title').textContent = 'Superfície Topográfica';
+        document.getElementById('tt-title').textContent = obj.userData.type === 'cells' ? 'Célula Intra-barra' : 'Superfície Topográfica';
         document.getElementById('tt-val-x').textContent = fmtHM(Math.round(scale.minMin + (tx / (timeBinsCount - 1 || 1)) * scale.minRange));
-        document.getElementById('tt-val-y').textContent = `${(scale.minPrice + (py / priceBinsCount) * scale.priceRange).toFixed(0)} - ${(scale.minPrice + ((py + 1) / priceBinsCount) * scale.priceRange).toFixed(0)}`;
+        document.getElementById('tt-val-y').textContent = `${fmtPrice(scale.minPrice + (py / priceBinsCount) * scale.priceRange, dec)} - ${fmtPrice(scale.minPrice + ((py + 1) / priceBinsCount) * scale.priceRange, dec)}`;
         document.getElementById('tt-val-z').textContent = Math.round(vol).toLocaleString('pt-BR');
         document.getElementById('tt-val-pct').textContent = `${(nv * 100).toFixed(1)}% do Pico`;
         document.getElementById('tt-poc-badge').classList.toggle('hidden', nv < 0.78);
+      } else if (obj.userData.type === 'cells' && trailState && trailState.slice.length) {
+        tooltip.classList.remove('hidden');
+        const p = hits[0].point;
+        const idx = Math.max(0, Math.min(trailState.slice.length - 1, Math.round((p.x / PLANE_WIDTH + 0.5) * (trailState.slice.length - 1))));
+        const b = trailState.slice[idx];
+        const nv = b.volume / trailState.maxVol;
+        document.getElementById('tt-title').textContent = 'Barra Intra-candle';
+        document.getElementById('tt-val-x').textContent = `${fmtDate(b.time)} • ${b.timeLabel}`;
+        document.getElementById('tt-val-y').textContent = `${fmtPrice(b.low, dec)} - ${fmtPrice(b.high, dec)}`;
+        document.getElementById('tt-val-z').textContent = Math.round(b.volume).toLocaleString('pt-BR');
+        document.getElementById('tt-val-pct').textContent = `${(nv * 100).toFixed(1)}% do Pico`;
+        document.getElementById('tt-poc-badge').classList.toggle('hidden', nv < 0.78);
       } else if (obj.userData.type === 'cell') {
+        tooltip.classList.remove('hidden');
         const ud = obj.userData;
         document.getElementById('tt-title').textContent = viewMode === 'topographic' ? 'Célula de Liquidez' : 'Ponto Temporal';
         document.getElementById('tt-val-x').textContent = ud.timeText;
@@ -1491,6 +1782,8 @@
         document.getElementById('tt-val-z').textContent = Math.round(ud.volume).toLocaleString('pt-BR');
         document.getElementById('tt-val-pct').textContent = `${(ud.normVol * 100).toFixed(1)}% do Pico`;
         document.getElementById('tt-poc-badge').classList.toggle('hidden', ud.normVol < 0.78);
+      } else {
+        tooltip.classList.add('hidden');
       }
     }
 
@@ -1518,8 +1811,17 @@
       const hits = raycaster.intersectObjects(interactiveMeshes, false);
       if (!hits.length) return;
       const p = hits[0].point;
+      let realVol = null;
+      if (terrainState) {
+        const tx = Math.max(0, Math.min(timeBinsCount - 1, Math.floor((p.x / PLANE_WIDTH + 0.5) * timeBinsCount)));
+        const py = Math.max(0, Math.min(priceBinsCount - 1, Math.floor((0.5 - p.z / PLANE_DEPTH) * priceBinsCount)));
+        realVol = terrainState.displayGrid[tx][py];
+      } else if (trailState && trailState.slice.length) {
+        const idx = Math.max(0, Math.min(trailState.slice.length - 1, Math.round((p.x / PLANE_WIDTH + 0.5) * (trailState.slice.length - 1))));
+        realVol = trailState.slice[idx].volume;
+      }
       if (fibAnchors.length >= 2) fibAnchors = [];
-      fibAnchors.push({ x: p.x, y: p.y, z: p.z, minuteOfDay: timeFromX(p.x), price: priceFromZ(p.z), volume: p.y - tiltYAt(p.z) });
+      fibAnchors.push({ x: p.x, y: p.y, z: p.z, minuteOfDay: timeFromX(p.x), price: priceFromZ(p.z), volume: p.y - tiltYAt(p.z), realVol });
       renderOverlay();
       showToast(fibAnchors.length === 1 ? 'Ponto 1 definido — clique no 2º (cume ou vale).' : 'Fibonacci ancorado. Clique de novo para recomeçar.');
     }
@@ -1527,8 +1829,27 @@
     function handleLiveMessage(msg) {
       const type = msg.type || msg.t;
       if (type === 'hello') {
+        manualCsvMode = false;
+        if (msg.symbol) {
+          const liveSym = String(msg.symbol).trim().toUpperCase();
+          symbol = liveSym;
+          const sel = document.getElementById('asset-symbol');
+          if (sel) {
+            const grp = normalizeAssetGroup(liveSym);
+            let opt = Array.from(sel.options).find((o) => o.value === liveSym || o.value === grp);
+            if (!opt) {
+              opt = document.createElement('option');
+              opt.value = liveSym;
+              opt.textContent = `${liveSym} · MT5 Ao Vivo`;
+              sel.appendChild(opt);
+            }
+            sel.value = opt.value;
+          }
+        }
         rawMarketData = [];
         barTimes = new Set();
+        pivots = [];
+        trades = [];
         presetApplied = false;
         return;
       }
@@ -1564,12 +1885,15 @@
       } else if (type === 'pivot' || type === 'abc') {
         const aT = ts(msg.a_time ?? msg.a?.time), bT = ts(msg.b_time ?? msg.b?.time), cT = ts(msg.c_time ?? msg.c?.time);
         if ([aT, bT, cT].some((x) => x == null)) return;
-        pivots.push({ a: { t: aT, m: todMin(aT), p: num(msg.a_price ?? msg.a?.price) }, b: { t: bT, m: todMin(bT), p: num(msg.b_price ?? msg.b?.price) }, c: { t: cT, m: todMin(cT), p: num(msg.c_price ?? msg.c?.price) }, scenario: msg.scenario || '', direction: dirFrom(msg.direction ?? msg.side), result: resultFrom(msg.result, num(msg.result_r)) });
+        const oT = ts(msg.o_time ?? msg.o?.time), oP = num(msg.o_price ?? msg.o?.price);
+        const piv = { symbol: String(msg.symbol || '').toUpperCase(), a: { t: aT, m: todMin(aT), p: num(msg.a_price ?? msg.a?.price) }, b: { t: bT, m: todMin(bT), p: num(msg.b_price ?? msg.b?.price) }, c: { t: cT, m: todMin(cT), p: num(msg.c_price ?? msg.c?.price) }, scenario: msg.scenario || '', direction: dirFrom(msg.direction ?? msg.side), result: resultFrom(msg.result, num(msg.result_r)) };
+        if (oT != null && isFinite(oP)) piv.o = { t: oT, m: todMin(oT), p: oP };
+        pivots.push(piv);
       } else if (type === 'trade') {
         const entryTime = ts(msg.entry_time); if (entryTime == null) return;
         const existing = trades.find((t) => t.id === msg.id);
         if (existing) { existing.exitTime = ts(msg.exit_time) ?? null; existing.exitM = existing.exitTime ? todMin(existing.exitTime) : null; existing.exitPrice = num(msg.exit_price, existing.exitPrice); if (msg.result) existing.result = resultFrom(msg.result, num(msg.result_r)); }
-        else trades.push({ id: msg.id ?? `ws${entryTime}`, direction: dirFrom(msg.direction ?? msg.side), scenario: msg.scenario || '', entryTime, entryM: todMin(entryTime), entryPrice: num(msg.entry ?? msg.entry_price), exitTime: ts(msg.exit_time) ?? null, exitM: ts(msg.exit_time) != null ? todMin(ts(msg.exit_time)) : null, exitPrice: num(msg.exit_price), result: msg.result ? resultFrom(msg.result, num(msg.result_r)) : null });
+        else trades.push({ id: msg.id ?? `ws${entryTime}`, symbol: String(msg.symbol || '').toUpperCase(), direction: dirFrom(msg.direction ?? msg.side), scenario: msg.scenario || '', entryTime, entryM: todMin(entryTime), entryPrice: num(msg.entry ?? msg.entry_price), exitTime: ts(msg.exit_time) ?? null, exitM: ts(msg.exit_time) != null ? todMin(ts(msg.exit_time)) : null, exitPrice: num(msg.exit_price), result: msg.result ? resultFrom(msg.result, num(msg.result_r)) : null });
       }
       updateVisualization();
     }
@@ -1584,44 +1908,88 @@
     }
 
     async function loadSampleData() {
-      try {
-        const r1 = await fetch('amostra_win_m1.csv', { cache: 'no-cache' });
-        if (r1.ok) parseCSV(await r1.text());
-        const r2 = await fetch('amostra_trades.csv', { cache: 'no-cache' });
-        if (r2.ok) parseCSV(await r2.text());
-        if (rawMarketData.length) {
-          sampleLoaded = true;
-          document.getElementById('badge-text').textContent = `Dados de exemplo · ${symbol}`;
-          setBadge('csv');
-          updateVisualization();
+      const file = ASSET_FILES[normalizeAssetGroup(symbol)] || ASSET_FILES[symbol];
+      manualCsvMode = false;
+      clearDateFilter();
+      rawMarketData = [];
+      pivots = [];
+      trades = [];
+      barTimes = new Set();
+      if (file) {
+        try {
+          const r1 = await fetch(file, { cache: 'no-cache' });
+          if (r1.ok) parseCSV(await r1.text(), true);
+        } catch (e) {
+          console.warn('sem dados de histórico:', e);
         }
-      } catch (e) {
-        console.warn('sem dados de exemplo:', e);
       }
+      try {
+        const r2 = await fetch('amostra_trades.csv', { cache: 'no-cache' });
+        if (r2.ok) parseCSV(await r2.text(), true);
+      } catch (e) {
+        console.warn('sem dados de trades:', e);
+      }
+      if (rawMarketData.length) {
+        sampleLoaded = true;
+        document.getElementById('badge-text').textContent = `Histórico · ${symbol}`;
+        setBadge('csv');
+      }
+      updateVisualization();
     }
 
-    function connectWS() {
+    function connectWS(manual = false) {
       const base = document.getElementById('ws-url').value.trim() || 'ws://localhost:8000/ws';
       const url = base.includes('?') ? base + '&symbol=' + encodeURIComponent(symbol) : base + '?symbol=' + encodeURIComponent(symbol);
       if (ws) { ws.close(); ws = null; }
       try { ws = new WebSocket(url); } catch { setWsStatus('off', 'WebSocket inválido'); return; }
       setWsStatus('connecting', 'Conectando…');
       document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
-      document.getElementById('badge-text').textContent = `WS conectando…`;
-      setBadge('live');
-      ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${symbol}`; };
+      if (!sampleLoaded || manual) {
+        document.getElementById('badge-text').textContent = `WS conectando…`;
+        setBadge('live');
+      }
+      ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${symbol}`; setBadge('live'); };
       ws.onclose = () => {
+        ws = null;
         setWsStatus('off', sampleLoaded ? 'Offline (dados de exemplo)' : 'Reconectando…');
         document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500';
-        document.getElementById('badge-text').textContent = sampleLoaded ? `Dados de exemplo · ${symbol}` : 'WS reconectando';
-        if (autoReconnect) setTimeout(() => { if (autoReconnect && !ws) connectWS(); }, 4000);
+        document.getElementById('badge-text').textContent = sampleLoaded ? `Histórico · ${symbol}` : 'WS reconectando';
+        if (sampleLoaded) setBadge('csv');
+        if (autoReconnect) setTimeout(() => { if (autoReconnect && !ws) connectWS(false); }, 4000);
       };
       ws.onerror = () => { setWsStatus('off', 'Erro de conexão'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
       ws.onmessage = (ev) => { try { handleLiveMessage(JSON.parse(ev.data)); } catch { /* ignore */ } };
     }
 
+    function parseTimeInput(str, fb) {
+      if (!str || !str.includes(':')) return fb;
+      const [h, m] = str.split(':').map(Number);
+      return (!isNaN(h) && !isNaN(m)) ? (h * 60 + m) : fb;
+    }
+
+    function styleTimePreset(activeId) {
+      ['time-preset-all', 'time-preset-am', 'time-preset-pm'].forEach((id) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.className = id === activeId
+          ? 'px-1.5 py-0.5 rounded bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-[9px] font-semibold'
+          : 'px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white text-[9px]';
+      });
+    }
+
+    function applyTimeWindow(startMin, endMin, presetId = '') {
+      filterStart = Math.max(0, Math.min(1439, startMin));
+      filterEnd = Math.max(filterStart + 15, Math.min(1440, endMin));
+      const elS = document.getElementById('f-time-start');
+      const elE = document.getElementById('f-time-end');
+      if (elS) elS.value = fmtHM(filterStart);
+      if (elE) elE.value = fmtHM(filterEnd);
+      styleTimePreset(presetId);
+      updateVisualization();
+    }
+
     function wireEvents() {
-      document.getElementById('asset-symbol').addEventListener('change', (e) => { symbol = (e.target.value || 'WIN').trim().toUpperCase(); updateVisualization(); });
+      document.getElementById('asset-symbol').addEventListener('change', (e) => { symbol = (e.target.value || 'WIN').trim().toUpperCase(); loadSampleData(); });
       document.getElementById('n-pocs').addEventListener('change', (e) => { nPocs = Math.max(1, Math.min(8, Number(e.target.value) || 3)); updateVisualization(); });
       document.getElementById('mode-topo').addEventListener('click', () => { viewMode = 'topographic'; styleBtn('mode-topo', 'mode-trail'); document.getElementById('topo-style-group').classList.remove('hidden'); document.getElementById('grid-res-group').classList.remove('hidden'); document.getElementById('badge-mode').textContent = 'Atlas Liquidez'; updateVisualization(); });
       document.getElementById('mode-trail').addEventListener('click', () => { viewMode = 'trail'; styleBtn('mode-trail', 'mode-topo'); document.getElementById('topo-style-group').classList.add('hidden'); document.getElementById('grid-res-group').classList.add('hidden'); document.getElementById('badge-mode').textContent = 'Execução Ao Vivo'; updateVisualization(); });
@@ -1629,12 +1997,14 @@
       document.getElementById('submode-bars').addEventListener('click', () => { topoSubMode = 'bars'; styleBtn('submode-bars', 'submode-mesh'); updateVisualization(); });
       document.getElementById('slider-price-bins').addEventListener('input', (e) => { priceBinsCount = parseInt(e.target.value, 10); document.getElementById('val-price-bins').textContent = `${priceBinsCount} faixas`; updateVisualization(); });
       document.getElementById('slider-time-zoom').addEventListener('input', (e) => { timeZoom = parseInt(e.target.value, 10); document.getElementById('val-time-zoom').textContent = `${TIME_ZOOM[timeZoom]} min`; updateVisualization(); });
+      document.getElementById('volume-filter').addEventListener('change', (e) => { volumeFilter = e.target.value || 'all'; updateVisualization(); });
       document.getElementById('slider-price-tilt').addEventListener('input', (e) => { priceTilt = parseInt(e.target.value, 10); document.getElementById('val-price-tilt').textContent = `${priceTilt}°`; updateVisualization(); });
       document.getElementById('slider-z-scale').addEventListener('input', (e) => { zScaleFactor = parseFloat(e.target.value); document.getElementById('val-z-scale').textContent = `${zScaleFactor.toFixed(1)}x`; updateVisualization(); });
       document.getElementById('toggle-wireframe').addEventListener('change', (e) => { showWireframe = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-intrabar').addEventListener('change', (e) => { showIntraBar = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-poc').addEventListener('change', (e) => { showPOC = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-ma').addEventListener('change', (e) => { showMA = e.target.checked; updateVisualization(); });
+      document.getElementById('toggle-abc').addEventListener('change', (e) => { showABC = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-liquidity').addEventListener('change', (e) => { simulateLiquidity = e.target.checked; if (simulateLiquidity) startLiquiditySim(); else stopLiquiditySim(); });
       document.getElementById('preset-day').addEventListener('click', () => { setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
@@ -1642,20 +2012,26 @@
       document.getElementById('preset-month').addEventListener('click', () => { setDatePreset(30); stylePreset('preset-month'); updateVisualization(); });
       document.getElementById('preset-year').addEventListener('click', () => { setDatePreset(365); stylePreset('preset-year'); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
-      document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
-      document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; updateVisualization(); });
-      document.getElementById('btn-clear-dates').addEventListener('click', () => { setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
+      document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; stylePreset(''); updateVisualization(); });
+      document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; stylePreset(''); updateVisualization(); });
+      document.getElementById('btn-clear-dates').addEventListener('click', () => { clearDateFilter(); presetApplied = true; stylePreset(''); updateVisualization(); });
+      document.getElementById('time-preset-all').addEventListener('click', () => applyTimeWindow(SESSION_START, SESSION_END, 'time-preset-all'));
+      document.getElementById('time-preset-am').addEventListener('click', () => applyTimeWindow(540, 750, 'time-preset-am'));
+      document.getElementById('time-preset-pm').addEventListener('click', () => applyTimeWindow(750, SESSION_END, 'time-preset-pm'));
+      document.getElementById('f-time-start').addEventListener('change', (e) => applyTimeWindow(parseTimeInput(e.target.value, SESSION_START), filterEnd));
+      document.getElementById('f-time-end').addEventListener('change', (e) => applyTimeWindow(filterStart, parseTimeInput(e.target.value, SESSION_END)));
       document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
       document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
       document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
       document.getElementById('csv-file-input').addEventListener('change', (e) => {
         const files = Array.from(e.target.files); if (!files.length) return;
-        rawMarketData = []; pivots = []; trades = []; clearDateFilter();
+        manualCsvMode = true;
+        rawMarketData = []; pivots = []; trades = []; clearDateFilter(); presetApplied = true; stylePreset('');
         let pending = files.length;
         files.forEach((f) => { const r = new FileReader(); r.onload = () => { parseCSV(String(r.result)); if (--pending === 0) updateVisualization(); }; r.readAsText(f); });
         e.target.value = '';
       });
-      document.getElementById('btn-ws').addEventListener('click', connectWS);
+      document.getElementById('btn-ws').addEventListener('click', () => connectWS(true));
       document.getElementById('fib-retrace').addEventListener('click', () => setFibTool(fibTool === 'retrace' ? 'none' : 'retrace'));
       document.getElementById('fib-extension').addEventListener('click', () => setFibTool(fibTool === 'extension' ? 'none' : 'extension'));
       document.getElementById('fib-golden').addEventListener('click', () => setFibTool(fibTool === 'golden' ? 'none' : 'golden'));
@@ -1761,7 +2137,7 @@
         a.sphere.scale.setScalar(1 + Math.sin(t * 6) * 0.35);
         if (lastTick && a.trade) {
           const tt = todMin(lastTick.time);
-          const lp = worldPoint(tt, lastTick.price);
+          const lp = scenePoint(tt, lastTick.price, lastTick.time);
           a.sphere.position.x = lp.x;
           a.sphere.position.z = lp.z;
           a.tip = lp;
@@ -1774,11 +2150,9 @@
         priceMarker.userData.glow.scale.setScalar(6 * (1 + Math.sin(t * 5) * 0.35));
         if (lastTick) {
           const m = todMin(lastTick.time);
-          const z = worldZ(lastTick.price);
-          const x = worldX(m);
-          const y = tiltYAt(z) + sampleHeight(x, z) + 1.3;
-          priceMarker.position.set(x, y, z);
-          if (priceLine) priceLine.position.z = z;
+          const pt = scenePoint(m, lastTick.price, lastTick.time, 1.3);
+          priceMarker.position.set(pt.x, pt.y, pt.z);
+          if (priceLine) priceLine.position.z = pt.z;
         }
       }
       controls.update();

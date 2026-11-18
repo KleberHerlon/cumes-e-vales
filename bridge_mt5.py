@@ -127,8 +127,11 @@ def detect_pattern(detector, bars: list[Bar], symbol: str, timeframe: str) -> di
         return None
     return {
         "type": "pivot",
-        "a_time": pat.a.start.time,
-        "a_price": pat.a.start.price,
+        "symbol": symbol,
+        "o_time": pat.a.start.time,
+        "o_price": pat.a.start.price,
+        "a_time": pat.a.end.time,
+        "a_price": pat.a.end.price,
         "b_time": pat.b.end.time,
         "b_price": pat.b.end.price,
         "c_time": pat.c.end.time,
@@ -239,6 +242,7 @@ def open_positions_msgs(symbol: str, magic: int) -> list[dict]:
         out.append({
             "type": "trade",
             "id": f"pos{p.ticket}",
+            "symbol": symbol,
             "direction": "compra" if p.type == mt5.POSITION_TYPE_BUY else "venda",
             "scenario": "",
             "entry_time": int(p.time),
@@ -253,7 +257,7 @@ def open_positions_msgs(symbol: str, magic: int) -> list[dict]:
 def closed_deals_msgs(symbol: str, magic: int, sent: set) -> list[dict]:
     out = []
     try:
-        deals = mt5.history_deals_get(datetime.now() - timedelta(days=3), datetime.now())
+        deals = mt5.history_deals_get(datetime.now() - timedelta(days=3), datetime.now() + timedelta(days=1))
     except Exception:  # noqa: BLE001
         return out
     groups: dict[int, list] = {}
@@ -278,6 +282,7 @@ def closed_deals_msgs(symbol: str, magic: int, sent: set) -> list[dict]:
             out.append({
                 "type": "trade",
                 "id": msg_id,
+                "symbol": symbol,
                 "direction": direction,
                 "scenario": "",
                 "entry_time": int(entry.time),
@@ -290,6 +295,7 @@ def closed_deals_msgs(symbol: str, magic: int, sent: set) -> list[dict]:
             out.append({
                 "type": "trade",
                 "id": msg_id,
+                "symbol": symbol,
                 "direction": direction,
                 "scenario": "",
                 "entry_time": int(entry.time),
@@ -328,6 +334,10 @@ async def handler(websocket, *_args) -> None:
             pat = detect_pattern(DETECTOR, bars_snapshot, SYMBOL, TIMEFRAME)
             if pat:
                 await websocket.send(json.dumps(pat))
+        for m in open_positions_msgs(SYMBOL, MAGIC):
+            await websocket.send(json.dumps(m, default=str))
+        for m in closed_deals_msgs(SYMBOL, MAGIC, set()):
+            await websocket.send(json.dumps(m, default=str))
         async for _ in websocket:
             pass
     except websockets.ConnectionClosed:
