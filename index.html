@@ -84,21 +84,53 @@
           <div class="flex justify-between"><span class="text-slate-400">Datas:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
         </div>
 
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1 min-w-[220px]">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-1">
-            <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
+        <div class="bg-dark-900/90 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 w-[262px]">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 gap-1">
+            <span class="text-slate-200 font-semibold flex items-center gap-1.5 text-[11px]"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
+            <div id="poc-selector-pills" class="flex items-center gap-1 flex-wrap justify-end"></div>
           </div>
-          <div class="flex justify-between"><span class="text-slate-400">Delta (tick real):</span><span id="an-delta-real" class="font-mono font-semibold text-slate-500">—</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Delta (proxy OHLC):</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Delta na POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Absorção da POC:</span><span id="an-absorption" class="font-mono font-semibold text-emerald-400">50%</span></div>
-          <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="an-abs-bar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500" style="width:50%"></div></div>
-          <div class="flex justify-between"><span class="text-slate-400">Preço vs POC:</span><span id="an-poc-dist" class="font-mono font-semibold text-slate-200">-</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">VWSD (valor):</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Assimetria (Skew):</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Z-Score máx (anomalia):</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Liquidez POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">Aderência Φ (Volume):</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
+
+          <div class="flex items-center justify-between text-[10px] bg-slate-950/75 border border-amber-500/25 rounded-lg px-2 py-1">
+            <span id="an-poc-target" class="font-mono font-bold text-amber-300">POC #1 @ —</span>
+            <span id="an-poc-vol-badge" class="font-mono text-slate-300">Vol: —</span>
+          </div>
+
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-lg px-2 py-1.5 flex flex-col gap-1">
+            <div class="flex items-center justify-between text-[9px] tracking-wider uppercase text-slate-400">
+              <span>Absorção na POC</span>
+              <span id="an-absorption" class="font-mono font-bold text-cyan-300">50%</span>
+            </div>
+            <svg viewBox="0 0 220 110" class="w-full h-[94px] overflow-visible">
+              <path d="M 26 94 A 84 84 0 0 1 194 94" fill="none" stroke="#1e293b" stroke-width="14" stroke-linecap="butt" />
+              <path id="an-gauge-sell-arc" d="M 26 94 A 84 84 0 0 1 194 94" fill="none" stroke="#f43f5e" stroke-width="14" stroke-linecap="butt" opacity="0.88" />
+              <path id="an-gauge-buy-arc" d="M 26 94 A 84 84 0 0 1 194 94" fill="none" stroke="#38bdf8" stroke-width="14" stroke-linecap="butt" stroke-dasharray="132 270" />
+              <line id="an-gauge-needle" x1="110" y1="22" x2="110" y2="2" stroke="#f8fafc" stroke-width="2.5" stroke-linecap="round" />
+              <text id="an-gauge-main-pct" x="110" y="68" text-anchor="middle" fill="#f1f5f9" font-size="21" font-weight="700" font-family="ui-monospace, monospace">50.0%</text>
+              <text id="an-gauge-main-lbl" x="110" y="85" text-anchor="middle" fill="#38bdf8" font-size="8.5" font-weight="700" letter-spacing="0.7">CONSUMO COMPRA</text>
+            </svg>
+            <div class="flex items-center justify-between text-[9.5px] -mt-1">
+              <span class="text-sky-400 font-semibold"><span id="an-buy-pct" class="font-mono font-bold">50%</span> COMPRA (<span id="an-buy-vol" class="font-mono">0</span>)</span>
+              <span class="text-rose-400 font-semibold">VENDA (<span id="an-sell-vol" class="font-mono">0</span>) <span id="an-sell-pct" class="font-mono font-bold">50%</span></span>
+            </div>
+            <div id="an-abs-status" class="text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-slate-900/90 border border-slate-700/70 text-slate-300 mt-0.5">STATUS: EQUILÍBRIO NA POC</div>
+          </div>
+
+          <div class="space-y-0.5 text-[11px]">
+            <div class="flex justify-between items-center"><span class="text-slate-400">Preço Atual:</span><span id="an-live-price" class="font-mono font-bold text-white">—</span></div>
+            <div class="flex justify-between items-center"><span class="text-slate-400">Dist. Últ. Fech. (<span id="an-prev-close-ref" class="text-slate-500">—</span>):</span><span id="an-close-dist" class="font-mono font-semibold text-slate-200">—</span></div>
+            <div class="flex justify-between items-center"><span class="text-slate-400">Dist. vs POC:</span><span id="an-poc-dist" class="font-mono font-semibold text-slate-200">—</span></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-1 border-t border-slate-800 text-[10px]">
+            <div class="flex justify-between"><span class="text-slate-400">Δ Tick:</span><span id="an-delta-real" class="font-mono font-semibold text-slate-400">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Δ POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Δ OHLC:</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Liq. POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">VWSD:</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Skew:</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Z-Score:</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Ader. Φ:</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
+          </div>
         </div>
       </div>
 
@@ -127,10 +159,24 @@
         </div>
       </div>
 
-      <div id="pip-wrap" class="absolute bottom-3 right-3 z-10 pointer-events-none">
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 shadow-xl">
-          <div class="text-[10px] text-slate-400 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-emerald-400"></i><span id="pip-title">WIN</span></div>
-          <canvas id="pip" width="300" height="150"></canvas>
+      <div id="pip-wrap" class="absolute bottom-3 right-3 z-10 pointer-events-auto">
+        <div class="bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 shadow-xl">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <div class="text-[10px] text-slate-300 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-line text-emerald-400"></i>
+              <span id="pip-title">WIN · M1</span>
+              <span id="pip-live-price" class="font-mono text-sky-300 font-bold">—</span>
+            </div>
+            <div id="pip-tf-bar" class="flex items-center gap-0.5 bg-dark-950/90 p-0.5 rounded-lg border border-slate-800">
+              <button data-pip-tf="M1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white transition">M1</button>
+              <button data-pip-tf="M5" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">M5</button>
+              <button data-pip-tf="M15" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">M15</button>
+              <button data-pip-tf="M30" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">M30</button>
+              <button data-pip-tf="H1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">1H</button>
+              <button data-pip-tf="D1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">Diário</button>
+            </div>
+          </div>
+          <canvas id="pip" width="356" height="168"></canvas>
         </div>
       </div>
 
@@ -259,7 +305,7 @@
           <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-indigo-400"></i> Camadas &amp; Linhas</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
             <div class="flex items-center justify-between"><span class="text-slate-300">Malha / Curvas de Nível</span>
-              <label class="cv-switch"><input type="checkbox" id="toggle-wireframe" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+              <label class="cv-switch"><input type="checkbox" id="toggle-wireframe"><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Perfil Intra-barra <span class="text-slate-500">(heatmap na barra)</span></span>
               <label class="cv-switch"><input type="checkbox" id="toggle-intrabar"><span class="cv-track"><span class="cv-thumb"></span></span></label>
@@ -268,13 +314,13 @@
               <label class="cv-switch"><input type="checkbox" id="toggle-poc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Média Móvel</span>
-              <label class="cv-switch"><input type="checkbox" id="toggle-ma"><span class="cv-track"><span class="cv-thumb"></span></span></label>
+              <label class="cv-switch"><input type="checkbox" id="toggle-ma" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Ondas ABC <span class="text-slate-500">(pivôs A-B-C)</span></span>
-              <label class="cv-switch"><input type="checkbox" id="toggle-abc" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+              <label class="cv-switch"><input type="checkbox" id="toggle-abc"><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Rastro Dourado (Telemetria)</span>
-              <label class="cv-switch"><input type="checkbox" id="toggle-trail" checked><span class="cv-track"><span class="cv-thumb"></span></span></label>
+              <label class="cv-switch"><input type="checkbox" id="toggle-trail"><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
             <div class="flex items-center justify-between"><span class="text-slate-300">Consumo de Liquidez <span class="text-slate-500">(derretimento)</span></span>
               <label class="cv-switch"><input type="checkbox" id="toggle-liquidity"><span class="cv-track"><span class="cv-thumb"></span></span></label>
@@ -372,10 +418,10 @@
     let priceBinsCount = 32;
     let timeBinsCount = 24;
     let zScaleFactor = 1.2;
-    let showWireframe = true;
+    let showWireframe = false;
     let showIntraBar = false;
-    let showABC = true;
-    let showTrail = true;
+    let showABC = false;
+    let showTrail = false;
     let tzOffsetHours = 0;
     let presetApplied = false;
     let filterStart = SESSION_START;
@@ -393,16 +439,19 @@
     let pocX = 0;
     let pocY = 0;
     let pocs = [];
-    let analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, pocDistance: 0, phiShare: 0, phiEnrich: 0 };
+    let selectedPocIndex = 0;
+    let analytics = { pocPrice: null, pocVol: 0, pocBuyVol: 0, pocSellVol: 0, pocBuyPct: 0.5, pocSellPct: 0.5, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, prevClose: null, prevCloseDist: 0, prevClosePct: 0, pocDistance: 0, pocDistancePct: 0, phiShare: 0, phiEnrich: 0 };
     let liquidity = 1.0;
     let simTimer = null;
     let simulateLiquidity = false;
     let symbol = 'WIN';
+    let liveMt5Symbol = 'WINZ26';
     const ASSET_FILES = { WIN: 'amostra_win_m1.csv', WDO: 'amostra_wdo_m1.csv', IBOV: 'amostra_ind_m1.csv', PETR4: 'amostra_petr4_m1.csv', VALE3: 'amostra_vale3_m1.csv', ITUB4: 'amostra_itub4_m1.csv', BBDC4: 'amostra_bbdc4_m1.csv' };
     let nPocs = 3;
     let maPeriod = 20;
     let showPOC = true;
-    let showMA = false;
+    let showMA = true;
+    let pipTimeframe = 'M1';
     let fibTool = 'none';
     let fibAxis = 'volume';
     let fibAnchors = [];
@@ -410,6 +459,7 @@
     let fibOpacity = 0.4;
 
     let rawMarketData = [];
+    let dailyMarketData = [];
     let barTimes = new Set();
     let pivots = [];
     let trades = [];
@@ -417,9 +467,12 @@
     let ws = null;
     let autoReconnect = true;
     let lastTick = null;
+    let wsPrevClose = null;
     let liveDelta = { buy: 0, sell: 0, net: 0 };
     let sampleLoaded = false;
     let liveFeed = null;
+    let pipDirty = true;
+    let terrainRefreshTimer = null;
 
     let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
     let terrainState = null;
@@ -701,6 +754,15 @@
       if (v >= 1e3) return 'R$ ' + (v / 1e3).toFixed(1) + 'K';
       return 'R$ ' + Math.round(v).toString();
     }
+    function fmtCompactVol(v) {
+      if (!isFinite(v)) return '—';
+      const a = Math.abs(v);
+      const sign = v < 0 ? '-' : '';
+      if (a >= 1e9) return sign + (a / 1e9).toFixed(2) + 'B';
+      if (a >= 1e6) return sign + (a / 1e6).toFixed(2) + 'M';
+      if (a >= 1e3) return sign + (a / 1e3).toFixed(1) + 'K';
+      return sign + Math.round(a).toLocaleString('pt-BR');
+    }
     function inActiveWindow(ts) { return activeWindow.days.has(localDateKey(ts)); }
 
     function computeActiveWindow() {
@@ -836,14 +898,86 @@
 
     function abcPoint(m, p, timeSec = null) { return scenePoint(m, p, timeSec, 1.8); }
 
+    function disposeNode(o) {
+      if (o.children && o.children.length) {
+        while (o.children.length) disposeNode(o.children.pop());
+      }
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach((mm) => {
+          if (mm.map) mm.map.dispose();
+          mm.dispose();
+        });
+      }
+    }
+
     function clearGroup(g) {
-      while (g.children.length) { const o = g.children.pop(); if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((mm) => mm.dispose()); } }
+      while (g.children.length) disposeNode(g.children.pop());
     }
 
     function makeTextSprite(text, color = '#94a3b8', w = 9, h = 2.25) {
       const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
       const ctx = cv.getContext('2d'); ctx.font = '600 24px Inter, sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 128, 32);
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true })); s.scale.set(w, h, 1); return s;
+    }
+
+    function makePocCalloutSprite(rank, priceStr, volStr, isSelected = true) {
+      const cv = document.createElement('canvas');
+      cv.width = 512; cv.height = 96;
+      const ctx = cv.getContext('2d');
+      const pad = 6;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = isSelected ? 'rgba(2, 6, 23, 0.92)' : 'rgba(15, 23, 42, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(pad, pad, cv.width - pad * 2, cv.height - pad * 2, 16);
+      ctx.fill();
+      ctx.lineWidth = isSelected ? 4 : 2.5;
+      ctx.strokeStyle = isSelected ? '#fbbf24' : '#38bdf8';
+      ctx.stroke();
+      const text = isSelected ? `POC #${rank}: ${priceStr} | VOL: ${volStr}` : `POC #${rank}: ${priceStr} · ${volStr}`;
+      ctx.font = isSelected ? '700 26px ui-monospace, SFMono-Regular, Menlo, monospace' : '600 22px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = isSelected ? '#fef3c7' : '#cbd5e1';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, cv.width / 2, cv.height / 2 + 1);
+      const tex = new THREE.CanvasTexture(cv);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      const sp = new THREE.Sprite(mat);
+      sp.renderOrder = isSelected ? 995 : 990;
+      sp.scale.set(isSelected ? 14.5 : 10.5, isSelected ? 2.7 : 2.0, 1);
+      return sp;
+    }
+
+    function drawPriceBadgeCanvas(cv, priceText, trend) {
+      const ctx = cv.getContext('2d');
+      const W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      const borderCol = trend > 0 ? '#10b981' : trend < 0 ? '#f43f5e' : '#38bdf8';
+      const accentCol = trend > 0 ? '#34d399' : trend < 0 ? '#fb7185' : '#e2e8f0';
+      const arrow = trend > 0 ? '▲ ' : trend < 0 ? '▼ ' : '';
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
+      ctx.beginPath();
+      ctx.roundRect(6, 6, W - 12, H - 12, 16);
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = borderCol;
+      ctx.stroke();
+      ctx.font = '700 32px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (arrow) {
+        const tw = ctx.measureText(arrow + priceText).width;
+        const aw = ctx.measureText(arrow).width;
+        const startX = W / 2 - tw / 2;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = accentCol;
+        ctx.fillText(arrow, startX, H / 2 + 1);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(priceText, startX + aw, H / 2 + 1);
+      } else {
+        ctx.fillText(priceText, W / 2, H / 2 + 1);
+      }
     }
 
     function drawDayBoundaries(slice, zHalf) {
@@ -960,6 +1094,7 @@
         .slice(0, Math.max(1, nPocs))
         .filter((e) => e.v > 0)
         .map((e, i) => ({ price: minPrice + (e.y / (priceBinsCount - 1 || 1)) * priceRange, yIndex: e.y, xIndex: e.x, vol: e.v, level: i + 1 }));
+      if (selectedPocIndex >= pocs.length) selectedPocIndex = 0;
       terrainState = { displayGrid, rawGrid: grid, maxCellVol };
       computeAnalytics();
 
@@ -1039,16 +1174,20 @@
       trailState = { slice, minPrice, maxPrice, priceRange, maxVol };
 
       const buckets = new Map();
-      let maxBucketIdx = 0;
+      const bucketBestIdx = new Map();
+      const bucketBestVol = new Map();
       slice.forEach((d, idx) => {
         const k = bucketPrice(d.close);
-        const cur = (buckets.get(k) || 0) + d.volume;
-        buckets.set(k, cur);
-        if (cur > (buckets.get(pocPrice) || 0)) maxBucketIdx = idx;
+        buckets.set(k, (buckets.get(k) || 0) + d.volume);
+        if (d.volume >= (bucketBestVol.get(k) ?? -1)) {
+          bucketBestVol.set(k, d.volume);
+          bucketBestIdx.set(k, idx);
+        }
       });
       const sortedPocs = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
       pocPrice = sortedPocs.length ? sortedPocs[0][0] : slice[slice.length - 1].close;
-      pocs = sortedPocs.slice(0, Math.max(1, nPocs)).map(([price, vol], i) => ({ price, vol, level: i + 1, xIndex: maxBucketIdx, yIndex: 0 }));
+      pocs = sortedPocs.slice(0, Math.max(1, nPocs)).map(([price, vol], i) => ({ price, vol, level: i + 1, xIndex: bucketBestIdx.get(price) ?? 0, yIndex: 0 }));
+      if (selectedPocIndex >= pocs.length) selectedPocIndex = 0;
       computeAnalytics(slice);
 
       const dec = getPriceDecimals(maxPrice);
@@ -1263,23 +1402,47 @@
     }
 
     function renderPOCHighlight() {
-      if (!showPOC || !terrainState || !pocs.length) return;
+      if (!showPOC || !pocs.length) return;
+      const dec = getPriceDecimals(scale.maxPrice);
+      if (viewMode === 'trail' && trailState && trailState.slice.length) {
+        pocs.forEach((poc, idx) => {
+          const isFocus = selectedPocIndex === -1 ? idx === 0 : selectedPocIndex === idx;
+          if (!isFocus && idx > 2) return;
+          const x = (poc.xIndex / (trailState.slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+          const z = zFromPrice(poc.price);
+          const bar = trailState.slice[Math.min(trailState.slice.length - 1, Math.max(0, poc.xIndex))];
+          const h = tiltYAt(z) + Math.max(0.3, (bar.volume / trailState.maxVol) * MAX_HEIGHT * zScaleFactor) + 0.6;
+          const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus);
+          banner.position.set(x, h + (isFocus ? 3.5 : 2.3), z);
+          overlayGroup.add(banner);
+        });
+        return;
+      }
+      if (!terrainState) return;
       pocs.forEach((poc, idx) => {
-        const primary = idx === 0;
+        const isFocus = selectedPocIndex === -1 ? idx === 0 : selectedPocIndex === idx;
+        const primary = idx === 0 || isFocus;
         const x = worldX(scale.minMin + (poc.xIndex / (timeBinsCount - 1 || 1)) * scale.minRange);
         const z = worldZ(poc.price);
         const h = tiltYAt(z) + sampleHeight(x, z) + 0.6;
-        const size = primary ? 7.5 : 5.5;
-        const op = primary ? 0.45 : 0.28;
-        const glow = makeGlowSprite(0xffd700, size);
+        const size = primary ? 8.2 : 5.2;
+        const op = primary ? 0.52 : 0.24;
+        const glowCol = isFocus ? 0xffd700 : 0x38bdf8;
+        const glow = makeGlowSprite(glowCol, size);
         glow.position.set(x, h, z);
         overlayGroup.add(glow);
         for (const r of primary ? [2.2, 4.2, 6.4] : [1.6, 3.0]) {
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 8, 56), new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: op, depthWrite: false }));
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.055, 8, 56), new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: op, depthWrite: false }));
           ring.rotation.x = Math.PI / 2;
           ring.position.set(x, h, z);
           overlayGroup.add(ring);
         }
+        const pinH = isFocus ? 3.4 : 2.2;
+        const pinGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, h, z), new THREE.Vector3(x, h + pinH, z)]);
+        overlayGroup.add(new THREE.Line(pinGeo, new THREE.LineBasicMaterial({ color: glowCol, transparent: true, opacity: isFocus ? 0.85 : 0.45, depthWrite: false })));
+        const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus);
+        banner.position.set(x, h + pinH + 1.0, z);
+        overlayGroup.add(banner);
       });
     }
 
@@ -1449,6 +1612,19 @@
       renderPriceMarker();
     }
 
+    function updatePriceMarkerBadge(price) {
+      if (!priceMarker || !priceMarker.userData.labelCanvas || !isFinite(price)) return;
+      const ud = priceMarker.userData;
+      const txt = fmtPrice(price);
+      const ref = analytics.prevClose ?? (activeData.length ? activeData[0].open : null);
+      const trend = ref != null ? (price > ref ? 1 : price < ref ? -1 : 0) : 0;
+      if (ud.lastBadgeTxt === txt && ud.lastBadgeTrend === trend) return;
+      ud.lastBadgeTxt = txt;
+      ud.lastBadgeTrend = trend;
+      drawPriceBadgeCanvas(ud.labelCanvas, txt, trend);
+      ud.labelTex.needsUpdate = true;
+    }
+
     function renderPriceMarker() {
       const src = viewMode === 'trail' && trailState ? trailState.slice : activeData;
       if (!src.length) return;
@@ -1461,9 +1637,19 @@
         const g = new THREE.Group();
         const glow = makeGlowSprite(0xffffff, 6);
         const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 14), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        const labelCanvas = document.createElement('canvas');
+        labelCanvas.width = 280;
+        labelCanvas.height = 76;
+        const labelTex = new THREE.CanvasTexture(labelCanvas);
+        const labelMat = new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthTest: false });
+        const labelSprite = new THREE.Sprite(labelMat);
+        labelSprite.scale.set(9.2, 2.5, 1);
+        labelSprite.position.set(0, 1.45, 1.75);
+        labelSprite.renderOrder = 999;
         g.add(glow);
         g.add(sphere);
-        g.userData = { sphere, glow };
+        g.add(labelSprite);
+        g.userData = { sphere, glow, labelSprite, labelCanvas, labelTex, lastBadgeTxt: '', lastBadgeTrend: 99 };
         overlayGroup.add(g);
         priceMarker = g;
         const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-PLANE_WIDTH / 2, 0.4, 0), new THREE.Vector3(PLANE_WIDTH / 2, 0.4, 0)]);
@@ -1471,6 +1657,7 @@
         overlayGroup.add(priceLine);
       }
       priceMarker.position.set(pt.x, pt.y, pt.z);
+      updatePriceMarkerBadge(price);
       if (priceLine) priceLine.position.z = pt.z;
     }
 
@@ -1504,9 +1691,33 @@
       return `${fmt(sorted[0])} … ${fmt(sorted[sorted.length - 1])}`;
     }
 
+    function getPrevClosePrice(barsSrc = rawMarketData) {
+      if (isFinite(wsPrevClose) && wsPrevClose > 0) return wsPrevClose;
+      const src = rawMarketData.length ? rawMarketData : barsSrc;
+      if (!src.length) return null;
+      let latestDay = '';
+      for (const b of src) {
+        const dk = localDateKey(b.time);
+        if (dk > latestDay) latestDay = dk;
+      }
+      if (dailyMarketData.length) {
+        for (let i = dailyMarketData.length - 1; i >= 0; i--) {
+          const dk = localDateKey(dailyMarketData[i].time);
+          if (dk < latestDay) return dailyMarketData[i].close;
+        }
+      }
+      let prevBar = null;
+      for (const b of src) {
+        const dk = localDateKey(b.time);
+        if (dk < latestDay && (!prevBar || b.time > prevBar.time)) prevBar = b;
+      }
+      if (prevBar) return prevBar.close;
+      return src[0].open;
+    }
+
     function computeAnalytics(barsSrc = activeData) {
       if (!barsSrc.length) {
-        analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, pocDistance: 0, phiShare: 0, phiEnrich: 0 };
+        analytics = { pocPrice: null, pocVol: 0, pocBuyVol: 0, pocSellVol: 0, pocBuyPct: 0.5, pocSellPct: 0.5, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, prevClose: null, prevCloseDist: 0, prevClosePct: 0, pocDistance: 0, pocDistancePct: 0, phiShare: 0, phiEnrich: 0 };
         return;
       }
       let wsum = 0, mean = 0;
@@ -1517,24 +1728,43 @@
       const vwsd = wsum ? Math.sqrt(vvar / wsum) : 0;
       const skew = (wsum && vwsd > 0) ? (vskew / wsum) / Math.pow(vwsd, 3) : 0;
 
-      const deltaMap = new Map();
       const volMap = new Map();
       let delta = 0;
       for (const b of barsSrc) {
         const d = b.volume * (b.close >= b.open ? 1 : -1);
         delta += d;
         const k = bucketPrice(b.close);
-        deltaMap.set(k, (deltaMap.get(k) || 0) + d);
         volMap.set(k, (volMap.get(k) || 0) + b.volume);
       }
 
-      let pocDelta = 0, pocVol = 0;
       const n = Math.min(pocs.length || 0, Math.max(1, nPocs));
-      for (let i = 0; i < n; i++) {
-        const k = bucketPrice(pocs[i].price);
-        pocDelta += deltaMap.get(k) || 0;
-        pocVol += volMap.get(k) || 0;
+      const targetPocs = !n ? [] : (selectedPocIndex === -1 ? pocs.slice(0, n) : [pocs[Math.min(selectedPocIndex, n - 1)]]);
+      const targetPocPrice = targetPocs.length ? targetPocs[0].price : pocPrice;
+      const bandHalf = Math.max(getPriceBucketStep(), (scale.priceRange || 1) / Math.max(12, priceBinsCount)) * 0.65;
+
+      let pocBuyVol = 0, pocSellVol = 0;
+      for (const b of barsSrc) {
+        if (!targetPocs.length) break;
+        let inPoc = false;
+        for (const tp of targetPocs) {
+          if (Math.abs(b.close - tp.price) <= bandHalf) { inPoc = true; break; }
+        }
+        if (!inPoc) continue;
+        let bullFrac;
+        if (b.high > b.low) {
+          const pos = (b.close - b.low) / (b.high - b.low);
+          bullFrac = b.close >= b.open ? Math.max(0.55, pos) : Math.min(0.45, pos);
+        } else {
+          bullFrac = b.close >= b.open ? 0.8 : 0.2;
+        }
+        const bv = b.volume * bullFrac;
+        pocBuyVol += bv;
+        pocSellVol += b.volume - bv;
       }
+      const pocVol = pocBuyVol + pocSellVol;
+      const pocDelta = pocBuyVol - pocSellVol;
+      const pocBuyPct = pocVol > 0 ? pocBuyVol / pocVol : 0.5;
+      const pocSellPct = 1 - pocBuyPct;
       const absorption = pocVol ? Math.max(0, Math.min(1, 1 - Math.abs(pocDelta) / pocVol)) : 0.5;
 
       let maxBucketVol = 0;
@@ -1560,10 +1790,72 @@
       let maxZ = 0;
       for (const b of barsSrc) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
 
-      const lastPrice = barsSrc[barsSrc.length - 1].close;
-      const pocDistance = pocPrice != null ? lastPrice - pocPrice : 0;
+      const lastPrice = (lastTick && isFinite(lastTick.price)) ? lastTick.price : barsSrc[barsSrc.length - 1].close;
+      const prevClose = getPrevClosePrice(barsSrc);
+      const prevCloseDist = prevClose != null ? lastPrice - prevClose : 0;
+      const prevClosePct = (prevClose != null && prevClose !== 0) ? (prevCloseDist / prevClose) * 100 : 0;
+      const pocDistance = targetPocPrice != null ? lastPrice - targetPocPrice : 0;
+      const pocDistancePct = (targetPocPrice != null && targetPocPrice !== 0) ? (pocDistance / targetPocPrice) * 100 : 0;
 
-      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, pocDistance, phiShare, phiEnrich };
+      analytics = { pocPrice: targetPocPrice, pocVol, pocBuyVol, pocSellVol, pocBuyPct, pocSellPct, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, prevClose, prevCloseDist, prevClosePct, pocDistance, pocDistancePct, phiShare, phiEnrich };
+    }
+
+    function getPipBars() {
+      const tfSec = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600 }[pipTimeframe];
+      let out = [];
+      if (pipTimeframe === 'D1') {
+        const dayMap = new Map();
+        for (const b of dailyMarketData) {
+          const dk = localDateKey(b.time);
+          dayMap.set(dk, { ...b, minuteOfDay: todMin(b.time) });
+        }
+        const m1Sorted = (rawMarketData.length ? rawMarketData : activeData);
+        for (const b of m1Sorted) {
+          const dk = localDateKey(b.time);
+          let cur = dayMap.get(dk);
+          if (!cur) {
+            cur = { time: b.time, minuteOfDay: todMin(b.time), timeLabel: fmtDate(b.time), open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume };
+            dayMap.set(dk, cur);
+          } else if (!dailyMarketData.length || b.time >= cur.time) {
+            if (b.high > cur.high) cur.high = b.high;
+            if (b.low < cur.low) cur.low = b.low;
+            cur.close = b.close;
+            cur.volume = Math.max(cur.volume, b.volume);
+          }
+        }
+        out = [...dayMap.values()].sort((a, b) => a.time - b.time).slice(-90);
+      } else {
+        const src = (manualCsvMode && (dateFrom || dateTo) && activeData.length) ? activeData : (rawMarketData.length ? rawMarketData : activeData);
+        if (!src.length) return [];
+        const tail = pipTimeframe === 'M1' ? src.slice(-90) : src.slice(-4500);
+        if (pipTimeframe === 'M1') {
+          out = tail.map((b) => ({ ...b }));
+        } else {
+          const map = new Map();
+          for (const b of tail) {
+            const bt = Math.floor(b.time / tfSec) * tfSec;
+            let cur = map.get(bt);
+            if (!cur) {
+              const m = todMin(bt);
+              cur = { time: bt, minuteOfDay: m, timeLabel: fmtHM(m), open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume };
+              map.set(bt, cur);
+            } else {
+              if (b.high > cur.high) cur.high = b.high;
+              if (b.low < cur.low) cur.low = b.low;
+              cur.close = b.close;
+              cur.volume += b.volume;
+            }
+          }
+          out = [...map.values()].sort((a, b) => a.time - b.time).slice(-90);
+        }
+      }
+      if (lastTick && isFinite(lastTick.price) && out.length) {
+        const last = out[out.length - 1];
+        last.close = lastTick.price;
+        if (lastTick.price > last.high) last.high = lastTick.price;
+        if (lastTick.price < last.low) last.low = lastTick.price;
+      }
+      return out;
     }
 
     function renderPiP() {
@@ -1572,12 +1864,12 @@
       const ctx = cv.getContext('2d');
       const W = cv.width, H = cv.height;
       ctx.clearRect(0, 0, W, H);
-      const bars = activeData.slice(-90);
+      const bars = getPipBars();
       if (bars.length < 2) return;
       let lo = Infinity, hi = -Infinity;
       for (const b of bars) { if (b.low < lo) lo = b.low; if (b.high > hi) hi = b.high; }
       const range = (hi - lo) || 1;
-      const padT = 8, padB = 16, padR = 50, padL = 6;
+      const padT = 8, padB = 16, padR = 56, padL = 6;
       const cw = (W - padL - padR) / bars.length;
       const py = (p) => padT + (hi - p) / range * (H - padT - padB);
       for (let i = 0; i < bars.length; i++) {
@@ -1594,7 +1886,7 @@
         const yO = py(b.open), yC = py(b.close);
         const top = Math.min(yO, yC), bot = Math.max(yO, yC);
         ctx.fillStyle = col;
-        ctx.fillRect(x - cw * 0.32, top, cw * 0.64, Math.max(1, bot - top));
+        ctx.fillRect(x - cw * 0.34, top, Math.max(1.5, cw * 0.68), Math.max(1.2, bot - top));
       }
       if (showMA && maPeriod > 1 && bars.length > maPeriod) {
         ctx.strokeStyle = '#fbbf24';
@@ -1634,32 +1926,171 @@
       }
       const last = bars[bars.length - 1];
       const dec = getPriceDecimals(hi);
-      const ly = py(last.close);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1;
+      const ly = Math.max(padT + 8, Math.min(H - padB - 8, py(last.close)));
+      const bullLast = last.close >= last.open;
+      ctx.strokeStyle = bullLast ? '#34d399' : '#fb7185';
+      ctx.lineWidth = 1.2;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
-      ctx.moveTo(padL, ly);
-      ctx.lineTo(W - padR, ly);
+      ctx.moveTo(padL, py(last.close));
+      ctx.lineTo(W - padR, py(last.close));
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = '600 10px monospace';
+      ctx.fillStyle = bullLast ? '#059669' : '#e11d48';
+      ctx.fillRect(W - padR + 2, ly - 8, padR - 3, 16);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 10px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(fmtPrice(last.close, dec), W - padR + 3, ly + 4);
+      ctx.fillText(fmtPrice(last.close, dec), W - padR + 5, ly + 3.5);
       ctx.fillStyle = '#64748b';
       ctx.font = '9px monospace';
-      ctx.fillText(fmtPrice(hi, dec), W - padR + 3, padT + 9);
-      ctx.fillText(fmtPrice(lo, dec), W - padR + 3, H - padB - 2);
+      ctx.fillText(fmtPrice(hi, dec), W - padR + 4, padT + 8);
+      ctx.fillText(fmtPrice(lo, dec), W - padR + 4, H - padB - 2);
       const times = [0, Math.floor((bars.length - 1) / 2), bars.length - 1];
       times.forEach((idx, ti) => {
         const b = bars[idx];
         ctx.textAlign = ti === 0 ? 'left' : ti === 2 ? 'right' : 'center';
         const x = ti === 0 ? padL : ti === 2 ? W - padR : padL + idx * cw + cw / 2;
-        ctx.fillText(fmtHM(b.minuteOfDay), x, H - 4);
+        ctx.fillText(pipTimeframe === 'D1' ? fmtDate(b.time) : fmtHM(b.minuteOfDay), x, H - 4);
       });
+      const tfLabel = pipTimeframe === 'D1' ? 'Diário' : pipTimeframe;
       const t = document.getElementById('pip-title');
-      if (t) t.textContent = `${symbol} · M1 · ${fmtHM(last.minuteOfDay)}`;
+      if (t) t.textContent = `${symbol} · ${tfLabel} · ${pipTimeframe === 'D1' ? fmtDate(last.time) : fmtHM(last.minuteOfDay)}`;
+      const plp = document.getElementById('pip-live-price');
+      if (plp) {
+        plp.textContent = fmtPrice(last.close, dec);
+        plp.className = 'font-mono font-bold ' + (bullLast ? 'text-emerald-400' : 'text-rose-400');
+      }
+    }
+
+    function renderPocSelectorPills() {
+      const box = document.getElementById('poc-selector-pills');
+      if (!box) return;
+      box.innerHTML = '';
+      const count = pocs.length;
+      if (!count) return;
+      if (selectedPocIndex >= count) selectedPocIndex = 0;
+      const makeBtn = (idx, label) => {
+        const active = selectedPocIndex === idx;
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.className = active
+          ? 'px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9.5px] font-bold font-mono transition'
+          : 'px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-400 hover:text-white border border-slate-700/60 text-[9.5px] font-mono transition';
+        b.addEventListener('click', () => {
+          selectedPocIndex = idx;
+          computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
+          updateAbsorptionUI();
+          renderOverlay();
+        });
+        return b;
+      };
+      for (let i = 0; i < count; i++) box.appendChild(makeBtn(i, `#${i + 1}`));
+      if (count > 1) box.appendChild(makeBtn(-1, 'Todas'));
+    }
+
+    function updateAbsorptionUI() {
+      const dec = getPriceDecimals(scale.maxPrice);
+      const an = analytics;
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      const pocLabel = selectedPocIndex === -1
+        ? `Todas (${pocs.length}) @ ${fmtPrice(an.pocPrice, dec)}`
+        : `POC #${selectedPocIndex + 1} @ ${fmtPrice(an.pocPrice, dec)}`;
+      set('an-poc-target', an.pocPrice != null ? pocLabel : 'POC #1 @ —');
+      set('an-poc-vol-badge', `Vol: ${fmtCompactVol(an.pocVol)}`);
+      set('an-absorption', `${Math.round(an.absorption * 100)}%`);
+      const buyPct100 = Math.round(an.pocBuyPct * 1000) / 10;
+      const sellPct100 = Math.max(0, Math.round((100 - buyPct100) * 10) / 10);
+      set('an-buy-pct', `${Math.round(an.pocBuyPct * 100)}%`);
+      set('an-sell-pct', `${Math.round(an.pocSellPct * 100)}%`);
+      set('an-buy-vol', fmtCompactVol(an.pocBuyVol));
+      set('an-sell-vol', fmtCompactVol(an.pocSellVol));
+
+      const arcLen = Math.PI * 84;
+      const buyArc = document.getElementById('an-gauge-buy-arc');
+      if (buyArc) buyArc.setAttribute('stroke-dasharray', `${(an.pocBuyPct * arcLen).toFixed(1)} 270`);
+      const needle = document.getElementById('an-gauge-needle');
+      if (needle) {
+        const theta = Math.PI * (1 - an.pocBuyPct);
+        const c = Math.cos(theta), s = Math.sin(theta);
+        needle.setAttribute('x1', (110 + 73 * c).toFixed(1));
+        needle.setAttribute('y1', (94 - 73 * s).toFixed(1));
+        needle.setAttribute('x2', (110 + 95 * c).toFixed(1));
+        needle.setAttribute('y2', (94 - 95 * s).toFixed(1));
+      }
+      const domBuy = an.pocBuyPct >= 0.5;
+      const mainPct = document.getElementById('an-gauge-main-pct');
+      const mainLbl = document.getElementById('an-gauge-main-lbl');
+      if (mainPct) {
+        mainPct.textContent = `${(domBuy ? buyPct100 : sellPct100).toFixed(1)}%`;
+        mainPct.setAttribute('fill', domBuy ? '#38bdf8' : '#fb7185');
+      }
+      if (mainLbl) {
+        mainLbl.textContent = domBuy ? 'CONSUMO COMPRA' : 'OFERTA VENDA';
+        mainLbl.setAttribute('fill', domBuy ? '#7dd3fc' : '#fda4af');
+      }
+      const stEl = document.getElementById('an-abs-status');
+      if (stEl) {
+        if (an.absorption >= 0.75) {
+          stEl.textContent = `ALTA ABSORÇÃO EM ${selectedPocIndex === -1 ? 'POCs' : 'POC #' + (selectedPocIndex + 1)}`;
+          stEl.className = 'text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 mt-0.5 font-semibold';
+        } else if (an.pocBuyPct >= 0.58) {
+          stEl.textContent = 'CONSUMO COMPRADOR DOMINANTE';
+          stEl.className = 'text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-sky-500/15 border border-sky-500/40 text-sky-300 mt-0.5 font-semibold';
+        } else if (an.pocSellPct >= 0.58) {
+          stEl.textContent = 'DEFESA VENDEDORA NA POC';
+          stEl.className = 'text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-rose-500/15 border border-rose-500/40 text-rose-300 mt-0.5 font-semibold';
+        } else {
+          stEl.textContent = 'EQUILÍBRIO NA POC';
+          stEl.className = 'text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-slate-900/90 border border-slate-700/70 text-slate-300 mt-0.5';
+        }
+      }
+
+      set('an-live-price', an.lastPrice != null ? fmtPrice(an.lastPrice, dec) : '—');
+      set('an-prev-close-ref', an.prevClose != null ? fmtPrice(an.prevClose, dec) : '—');
+      const cdEl = document.getElementById('an-close-dist');
+      if (cdEl) {
+        if (an.prevClose != null && an.lastPrice != null) {
+          const sign = an.prevCloseDist >= 0 ? '+' : '';
+          const psign = an.prevClosePct >= 0 ? '+' : '';
+          cdEl.textContent = `${sign}${an.prevCloseDist.toFixed(dec)} (${psign}${an.prevClosePct.toFixed(2)}%)`;
+          cdEl.className = 'font-mono font-semibold ' + (an.prevCloseDist >= 0 ? 'text-emerald-400' : 'text-rose-400');
+        } else {
+          cdEl.textContent = '—';
+          cdEl.className = 'font-mono font-semibold text-slate-400';
+        }
+      }
+      const pd = document.getElementById('an-poc-dist');
+      if (pd) {
+        if (an.pocPrice != null && an.lastPrice != null) {
+          const sign = an.pocDistance >= 0 ? '+' : '';
+          const psign = an.pocDistancePct >= 0 ? '+' : '';
+          pd.textContent = `${sign}${an.pocDistance.toFixed(dec)} (${psign}${an.pocDistancePct.toFixed(2)}%)`;
+          pd.className = 'font-mono font-semibold ' + (an.pocDistance >= 0 ? 'text-emerald-400' : 'text-rose-400');
+        } else {
+          pd.textContent = '—';
+          pd.className = 'font-mono font-semibold text-slate-400';
+        }
+      }
+
+      set('an-delta', `${an.delta >= 0 ? '+' : ''}${fmtCompactVol(an.delta)}`);
+      set('an-poc-delta', `${an.pocDelta >= 0 ? '+' : ''}${fmtCompactVol(an.pocDelta)}${an.pocDelta >= 0 ? ' ▲' : ' ▼'}`);
+      const pc = document.getElementById('an-poc-delta');
+      if (pc) pc.className = 'font-mono font-semibold ' + (an.pocDelta >= 0 ? 'text-emerald-400' : 'text-rose-400');
+      set('an-vwsd', `${an.vwsd.toFixed(dec > 0 ? dec : 1)}`);
+      set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
+      set('an-zscore', `${an.maxZ.toFixed(1)}σ`);
+      set('an-liquidity', `${Math.round(liquidity * 100)}%`);
+      const phiEl = document.getElementById('an-phi-score');
+      if (phiEl) {
+        if (an.phiEnrich > 0) {
+          phiEl.textContent = `${Math.round(an.phiShare * 100)}% (${an.phiEnrich.toFixed(2)}x)`;
+          phiEl.className = 'font-mono font-semibold ' + (an.phiEnrich >= 1.15 ? 'text-emerald-400' : an.phiEnrich >= 0.9 ? 'text-amber-300' : 'text-slate-400');
+        } else {
+          phiEl.textContent = '—';
+          phiEl.className = 'font-mono font-semibold text-slate-500';
+        }
+      }
     }
 
     function updateStats(pocX, pocY, xLabels, yLabels, maxCellVol, barsSrc = activeData) {
@@ -1673,32 +2104,9 @@
       const pLabel = 'Datas';
       const el = document.getElementById('stat-period');
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
-      const an = analytics;
-      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-      set('an-delta', `${an.delta >= 0 ? '+' : ''}${Math.round(an.delta).toLocaleString('pt-BR')}`);
-      set('an-poc-delta', `${an.pocDelta >= 0 ? '+' : ''}${Math.round(an.pocDelta).toLocaleString('pt-BR')}${an.pocDelta >= 0 ? ' ▲' : ' ▼'}`);
-      set('an-absorption', `${Math.round(an.absorption * 100)}%`);
-      set('an-vwsd', `${an.vwsd.toFixed(dec > 0 ? dec : 1)} pts`);
-      set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
-      set('an-zscore', `${an.maxZ.toFixed(1)}σ`);
-      set('an-liquidity', `${Math.round(liquidity * 100)}%`);
-      set('an-poc-dist', an.pocPrice == null ? '—' : `${an.pocDistance >= 0 ? '+' : ''}${an.pocDistance.toFixed(dec)} pts ${an.pocDistance >= 0 ? '(acima)' : '(abaixo)'}`);
-      const pd = document.getElementById('an-poc-dist');
-      if (pd) pd.className = 'font-mono font-semibold ' + (an.pocDistance >= 0 ? 'text-emerald-400' : 'text-rose-400');
-      const ab = document.getElementById('an-abs-bar');
-      if (ab) ab.style.width = `${Math.round(an.absorption * 100)}%`;
-      const pc = document.getElementById('an-poc-delta');
-      if (pc) pc.className = 'font-mono font-semibold ' + (an.pocDelta >= 0 ? 'text-emerald-400' : 'text-rose-400');
-      const phiEl = document.getElementById('an-phi-score');
-      if (phiEl) {
-        if (an.phiEnrich > 0) {
-          phiEl.textContent = `${Math.round(an.phiShare * 100)}% (${an.phiEnrich.toFixed(2)}x)`;
-          phiEl.className = 'font-mono font-semibold ' + (an.phiEnrich >= 1.15 ? 'text-emerald-400' : an.phiEnrich >= 0.9 ? 'text-amber-300' : 'text-slate-400');
-        } else {
-          phiEl.textContent = '—';
-          phiEl.className = 'font-mono font-semibold text-slate-500';
-        }
-      }
+      renderPocSelectorPills();
+      updateAbsorptionUI();
+      pipDirty = true;
     }
 
     function updateVisualization() {
@@ -1826,59 +2234,161 @@
       showToast(fibAnchors.length === 1 ? 'Ponto 1 definido — clique no 2º (cume ou vale).' : 'Fibonacci ancorado. Clique de novo para recomeçar.');
     }
 
+    function scheduleTerrainRefresh() {
+      if (terrainRefreshTimer) return;
+      terrainRefreshTimer = setTimeout(() => {
+        terrainRefreshTimer = null;
+        if (rawMarketData.length) updateVisualization();
+      }, 4000);
+    }
+
+    function updateLiveTickUI() {
+      if (!lastTick || !isFinite(lastTick.price)) return;
+      const p = lastTick.price;
+      const pc = getPrevClosePrice(activeData);
+      analytics.lastPrice = p;
+      analytics.prevClose = pc;
+      analytics.prevCloseDist = pc != null ? p - pc : 0;
+      analytics.prevClosePct = (pc != null && pc !== 0) ? (analytics.prevCloseDist / pc) * 100 : 0;
+      analytics.pocDistance = analytics.pocPrice != null ? p - analytics.pocPrice : 0;
+      analytics.pocDistancePct = (analytics.pocPrice != null && analytics.pocPrice !== 0) ? (analytics.pocDistance / analytics.pocPrice) * 100 : 0;
+      updateAbsorptionUI();
+      if (priceMarker) {
+        const m = todMin(lastTick.time);
+        const pt = scenePoint(m, p, lastTick.time, 1.3);
+        priceMarker.position.set(pt.x, pt.y, pt.z);
+        updatePriceMarkerBadge(p);
+        if (priceLine) priceLine.position.z = pt.z;
+      }
+      renderPiP();
+      pipDirty = false;
+    }
+
     function handleLiveMessage(msg) {
       const type = msg.type || msg.t;
       if (type === 'hello') {
         manualCsvMode = false;
         if (msg.symbol) {
           const liveSym = String(msg.symbol).trim().toUpperCase();
-          symbol = liveSym;
+          const grp = normalizeAssetGroup(liveSym) || liveSym;
+          symbol = grp;
+          liveMt5Symbol = String(msg.mt5_symbol || liveSym).trim().toUpperCase();
           const sel = document.getElementById('asset-symbol');
           if (sel) {
-            const grp = normalizeAssetGroup(liveSym);
-            let opt = Array.from(sel.options).find((o) => o.value === liveSym || o.value === grp);
+            let opt = Array.from(sel.options).find((o) => o.value === grp || o.value === liveSym);
             if (!opt) {
               opt = document.createElement('option');
-              opt.value = liveSym;
-              opt.textContent = `${liveSym} · MT5 Ao Vivo`;
+              opt.value = grp;
+              opt.textContent = `${grp} · MT5 Ao Vivo`;
               sel.appendChild(opt);
             }
             sel.value = opt.value;
           }
         }
+        wsPrevClose = isFinite(Number(msg.prev_close)) && Number(msg.prev_close) > 0 ? Number(msg.prev_close) : null;
         rawMarketData = [];
+        dailyMarketData = [];
         barTimes = new Set();
-        pivots = [];
-        trades = [];
         presetApplied = false;
+        const bt = document.getElementById('badge-text');
+        if (bt) bt.textContent = `Ao Vivo · ${symbol}${liveMt5Symbol && liveMt5Symbol !== symbol ? ' (' + liveMt5Symbol + ')' : ''}`;
+        setBadge('live');
+        const rd = document.getElementById('an-delta-real');
+        if (rd) { rd.textContent = '—'; rd.className = 'font-mono font-semibold text-slate-400'; }
         return;
       }
       if (type === 'bars') {
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
         for (const b of msg.bars || []) {
           const time = ts(b.time ?? b.ts); if (time == null || barTimes.has(time)) continue;
           barTimes.add(time);
           const close = num(b.close ?? b.c); if (!isFinite(close)) continue;
           rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
         }
+        rawMarketData.sort((a, b) => a.time - b.time);
+        pipDirty = true;
         updateVisualization();
         return;
       }
+      if (type === 'd1_bars') {
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
+        dailyMarketData = [];
+        for (const b of msg.bars || []) {
+          const time = ts(b.time ?? b.ts); if (time == null) continue;
+          const close = num(b.close ?? b.c); if (!isFinite(close)) continue;
+          dailyMarketData.push({ time, minuteOfDay: todMin(time), timeLabel: fmtDate(time), open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
+        }
+        dailyMarketData.sort((a, b) => a.time - b.time);
+        pipDirty = true;
+        computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
+        updateAbsorptionUI();
+        return;
+      }
       if (type === 'bar' || type === 'candle') {
-        const time = ts(msg.time ?? msg.ts); if (time == null || barTimes.has(time)) return;
-        barTimes.add(time);
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
+        const time = ts(msg.time ?? msg.ts); if (time == null) return;
         const close = num(msg.close ?? msg.c), open = num(msg.open ?? msg.o, close), high = num(msg.high ?? msg.h, close), low = num(msg.low ?? msg.l, close), vol = num(msg.volume ?? msg.vol ?? msg.tick_volume, 0);
         if (!isFinite(close)) return;
-        rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open, high, low, close, volume: vol });
+        if (barTimes.has(time)) {
+          for (let i = rawMarketData.length - 1; i >= Math.max(0, rawMarketData.length - 15); i--) {
+            if (rawMarketData[i].time === time) {
+              rawMarketData[i].open = open;
+              rawMarketData[i].high = high;
+              rawMarketData[i].low = low;
+              rawMarketData[i].close = close;
+              rawMarketData[i].volume = vol;
+              break;
+            }
+          }
+          pipDirty = true;
+          if (msg.forming) {
+            if (!lastTick || time >= Math.floor(lastTick.time / 60) * 60) {
+              if (!lastTick) lastTick = { time, price: close, bid: close, ask: close, volume: vol };
+              updateLiveTickUI();
+            }
+            scheduleTerrainRefresh();
+            return;
+          }
+        } else {
+          barTimes.add(time);
+          rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open, high, low, close, volume: vol });
+          if (msg.forming) {
+            updateVisualization();
+            return;
+          }
+        }
       } else if (type === 'tick') {
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
         const time = ts(msg.time ?? msg.ts); if (time == null) return;
-        const price = num(msg.bid ?? msg.ask ?? msg.price);
-        if (isFinite(price)) lastTick = { time, price };
+        const lastP = num(msg.last);
+        const msgP = num(msg.price);
+        const bidP = num(msg.bid);
+        const askP = num(msg.ask);
+        const price = (isFinite(lastP) && lastP > 0) ? lastP : ((isFinite(msgP) && msgP > 0) ? msgP : ((isFinite(bidP) && bidP > 0) ? bidP : askP));
+        if (!isFinite(price) || price <= 0) return;
+        lastTick = { time, price, bid: bidP, ask: askP, volume: num(msg.volume, 1) };
+        const barTime = Math.floor(time / 60) * 60;
+        const lastBar = rawMarketData.length ? rawMarketData[rawMarketData.length - 1] : null;
+        if (lastBar && lastBar.time === barTime) {
+          lastBar.close = price;
+          if (price > lastBar.high) lastBar.high = price;
+          if (price < lastBar.low) lastBar.low = price;
+        } else if (!barTimes.has(barTime)) {
+          barTimes.add(barTime);
+          const m = todMin(barTime);
+          const nb = { dayIndex: 0, minuteOfDay: m, timeLabel: fmtHM(m), time: barTime, open: price, high: price, low: price, close: price, volume: lastTick.volume };
+          rawMarketData.push(nb);
+          if (inActiveWindow(barTime) && m >= filterStart && m < filterEnd) activeData.push(nb);
+        }
+        updateLiveTickUI();
+        scheduleTerrainRefresh();
         return;
       } else if (type === 'delta') {
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
         liveDelta = { buy: num(msg.buy, 0), sell: num(msg.sell, 0), net: num(msg.net, num(msg.buy, 0) - num(msg.sell, 0)) };
         const rd = document.getElementById('an-delta-real');
         if (rd) {
-          rd.textContent = `${liveDelta.net >= 0 ? '+' : ''}${Math.round(liveDelta.net).toLocaleString('pt-BR')}${liveDelta.net >= 0 ? ' ▲' : ' ▼'}`;
+          rd.textContent = `${liveDelta.net >= 0 ? '+' : ''}${fmtCompactVol(liveDelta.net)}${liveDelta.net >= 0 ? ' ▲' : ' ▼'}`;
           rd.className = 'font-mono font-semibold ' + (liveDelta.net >= 0 ? 'text-emerald-400' : 'text-rose-400');
         }
         return;
@@ -1888,7 +2398,7 @@
         const oT = ts(msg.o_time ?? msg.o?.time), oP = num(msg.o_price ?? msg.o?.price);
         const piv = { symbol: String(msg.symbol || '').toUpperCase(), a: { t: aT, m: todMin(aT), p: num(msg.a_price ?? msg.a?.price) }, b: { t: bT, m: todMin(bT), p: num(msg.b_price ?? msg.b?.price) }, c: { t: cT, m: todMin(cT), p: num(msg.c_price ?? msg.c?.price) }, scenario: msg.scenario || '', direction: dirFrom(msg.direction ?? msg.side), result: resultFrom(msg.result, num(msg.result_r)) };
         if (oT != null && isFinite(oP)) piv.o = { t: oT, m: todMin(oT), p: oP };
-        pivots.push(piv);
+        if (!pivots.some((x) => x.symbol === piv.symbol && x.c.t === piv.c.t && x.a.t === piv.a.t)) pivots.push(piv);
       } else if (type === 'trade') {
         const entryTime = ts(msg.entry_time); if (entryTime == null) return;
         const existing = trades.find((t) => t.id === msg.id);
@@ -1989,7 +2499,31 @@
     }
 
     function wireEvents() {
-      document.getElementById('asset-symbol').addEventListener('change', (e) => { symbol = (e.target.value || 'WIN').trim().toUpperCase(); loadSampleData(); });
+      document.getElementById('asset-symbol').addEventListener('change', (e) => {
+        symbol = (e.target.value || 'WIN').trim().toUpperCase();
+        selectedPocIndex = 0;
+        lastTick = null;
+        wsPrevClose = null;
+        dailyMarketData = [];
+        liveDelta = { buy: 0, sell: 0, net: 0 };
+        loadSampleData().then(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'subscribe', symbol }));
+          else connectWS(true);
+        });
+      });
+      document.querySelectorAll('.pip-tf-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          pipTimeframe = btn.dataset.pipTf || 'M1';
+          document.querySelectorAll('.pip-tf-btn').forEach((b) => {
+            const act = (b.dataset.pipTf === pipTimeframe);
+            b.className = act
+              ? 'pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white transition'
+              : 'pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition';
+          });
+          pipDirty = true;
+          renderPiP();
+        });
+      });
       document.getElementById('n-pocs').addEventListener('change', (e) => { nPocs = Math.max(1, Math.min(8, Number(e.target.value) || 3)); updateVisualization(); });
       document.getElementById('mode-topo').addEventListener('click', () => { viewMode = 'topographic'; styleBtn('mode-topo', 'mode-trail'); document.getElementById('topo-style-group').classList.remove('hidden'); document.getElementById('grid-res-group').classList.remove('hidden'); document.getElementById('badge-mode').textContent = 'Atlas Liquidez'; updateVisualization(); });
       document.getElementById('mode-trail').addEventListener('click', () => { viewMode = 'trail'; styleBtn('mode-trail', 'mode-topo'); document.getElementById('topo-style-group').classList.add('hidden'); document.getElementById('grid-res-group').classList.add('hidden'); document.getElementById('badge-mode').textContent = 'Execução Ao Vivo'; updateVisualization(); });
@@ -2152,12 +2686,17 @@
           const m = todMin(lastTick.time);
           const pt = scenePoint(m, lastTick.price, lastTick.time, 1.3);
           priceMarker.position.set(pt.x, pt.y, pt.z);
+          updatePriceMarkerBadge(lastTick.price);
           if (priceLine) priceLine.position.z = pt.z;
         }
       }
       controls.update();
       renderer.render(scene, camera);
-      if (frame++ % 6 === 0) renderPiP();
+      if (pipDirty || (lastTick && frame % 30 === 0)) {
+        renderPiP();
+        pipDirty = false;
+      }
+      frame++;
     }
 
     let frame = 0;

@@ -29,6 +29,7 @@ import sys
 from dataclasses import fields as dc_fields
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import unquote
 
 import MetaTrader5 as mt5
 import websockets
@@ -58,19 +59,51 @@ TIMEFRAMES = {
     "D1": mt5.TIMEFRAME_D1,
 }
 
-CLIENTS: set = set()
+CLIENT_SUBS: dict = {}
 SYMBOL = "WINZ26"
 TIMEFRAME = "M1"
 HISTORY: list = []
 HISTORY_COUNT = 600
+HISTORY_DAYS = 30
 MAGIC = 20261022
 DETECTOR = None
 WATCHLIST: list = []
 HISTORIES: dict = {}
 
+SYMBOL_ALIASES = {
+    "WIN": ("WIN", "WINZ26"),
+    "WINZ26": ("WIN", "WINZ26"),
+    "WDO": ("WDO", "WDOZ26"),
+    "WDOZ26": ("WDO", "WDOZ26"),
+    "IND": ("IBOV", "IBOV"),
+    "IBOV": ("IBOV", "IBOV"),
+}
+
+
+def resolve_mt5_symbol(sym: str | None) -> tuple[str, str]:
+    s = (sym or SYMBOL or "WINZ26").strip().upper()
+    if s in SYMBOL_ALIASES:
+        return SYMBOL_ALIASES[s]
+    if s.startswith("WIN"):
+        return ("WIN", s)
+    if s.startswith("WDO"):
+        return ("WDO", s)
+    if s.startswith("IND"):
+        return ("IBOV", "IBOV")
+    return (s, s)
+
 
 def log(msg: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+def extract_req_path(websocket, args) -> str:
+    if args and isinstance(args[0], str):
+        return args[0]
+    req = getattr(websocket, "request", None)
+    if req is not None and getattr(req, "path", None):
+        return req.path
+    return getattr(websocket, "path", "") or ""
 
 
 def parse_symbol_from_path(path) -> str | None:
@@ -79,7 +112,8 @@ def parse_symbol_from_path(path) -> str | None:
     try:
         for part in path.split("?", 1)[1].split("&"):
             if part.startswith("symbol="):
-                return part.split("=", 1)[1].strip().upper() or None
+                val = unquote(part.split("=", 1)[1]).strip().upper()
+                return val or None
     except Exception:  # noqa: BLE001
         return None
     return None
@@ -172,61 +206,91 @@ def rate_to_plain(row) -> dict:
     }
 
 
-def history_cache_path(symbol: str, timeframe: str) -> Path:
-    safe = "".join(c if c.isalnum() else "_" for c in symbol)
-    return HERE / f"history_{safe}_{timeframe}.json"
+def get_symbol_data(mt5_sym: str, ui_sym: str, timeframe: str = "M1", refresh: bool = False) -> dict:
+    cache_key = (mt5_sym, timeframe)
+    cached = HISTORIES.get(cache_key)
+    now_ts = datetime.now().timestamp()
+    if cached and not refresh and (now_ts - cached.get("loaded_at", 0) < 60):
+        return cached
+
+    mt5.symbol_select(mt5_sym, True)
+    tf = TIMEFRAMES[timeframe.upper()]
+    rates_m1 = mt5.copy_rates_from_pos(mt5_sym, tf, 0, 4000)
+    if rates_m1 is not None and len(rates_m1) > 0:
+        m1_rows = [rate_to_plain(r) for r in rates_m1]
+    else:
+        log(f"fallback histórico de {mt5_sym}: {mt5.last_error()}")
+        m1_rows = []
+
+    rates_d1 = mt5.copy_rates_from_pos(mt5_sym, mt5.TIMEFRAME_D1, 0, 120)
+    d1_msgs = [bar_to_msg(ui_sym, "D1", r) for r in rates_d1] if rates_d1 is not None and len(rates_d1) > 0 else []
+    prev_close = None
+    if rates_d1 is not None and len(rates_d1) >= 2:
+        prev_close = float(rates_d1[-2]["close"])
+    elif rates_d1 is not None and len(rates_d1) == 1:
+        prev_close = float(rates_d1[-1]["open"])
+
+    data = {"m1": m1_rows, "d1": d1_msgs, "prev_close": prev_close, "loaded_at": now_ts}
+    HISTORIES[cache_key] = data
+    log(f"histórico carregado: {ui_sym} ({mt5_sym}) · M1={len(m1_rows)} · D1={len(d1_msgs)} · prev_close={prev_close}")
+    return data
 
 
-def load_history(symbol: str, timeframe: str, days: int, refresh: bool = False) -> list[dict]:
-    path = history_cache_path(symbol, timeframe)
-    if path.exists() and not refresh:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            bars = data.get("bars") or []
-            if data.get("symbol") == symbol and data.get("timeframe") == timeframe and bars:
-                last_ts = int(bars[-1]["time"])
-                if datetime.now().timestamp() - last_ts < 86400:
-                    log(f"cache carregado: {path.name} ({len(bars)} barras)")
-                    return bars
-        except Exception:  # noqa: BLE001
-            pass
-    date_from = datetime.now() - timedelta(days=days)
-    log(f"baixando histórico de {days} dia(s) ({date_from:%d/%m/%Y} → hoje)...")
-    rates = mt5.copy_rates_range(symbol, TIMEFRAMES[timeframe.upper()], date_from, datetime.now())
-    if rates is None:
-        log(f"falha ao baixar histórico de {symbol}: {mt5.last_error()}")
-        return []
-    rows = [rate_to_plain(r) for r in rates]
-    try:
-        path.write_text(json.dumps({"symbol": symbol, "timeframe": timeframe, "bars": rows}), encoding="utf-8")
-        log(f"cache salvo: {path.name} ({len(rows)} barras)")
-    except Exception:  # noqa: BLE001
-        pass
-    return rows
-
-
-def tick_msg(symbol: str) -> dict | None:
-    t = mt5.symbol_info_tick(symbol)
+def tick_msg(mt5_sym: str, ui_sym: str | None = None) -> dict | None:
+    ui = ui_sym or mt5_sym
+    t = mt5.symbol_info_tick(mt5_sym)
     if t is None:
         return None
-    return {"type": "tick", "symbol": symbol, "time": int(t.time), "bid": float(t.bid), "ask": float(t.ask)}
+    last = float(t.last)
+    bid = float(t.bid)
+    ask = float(t.ask)
+    price = last if last > 0 else (bid if bid > 0 else ask)
+    if price <= 0:
+        return None
+    vol = int(getattr(t, "volume", 0) or 1)
+    return {
+        "type": "tick",
+        "symbol": ui,
+        "mt5_symbol": mt5_sym,
+        "time": int(t.time),
+        "price": price,
+        "last": last,
+        "bid": bid,
+        "ask": ask,
+        "volume": vol,
+    }
 
 
-def recent_tick_delta(symbol: str, from_dt) -> tuple[float, float]:
+def recent_tick_delta(mt5_sym: str, state: dict) -> tuple[float, float]:
+    t = mt5.symbol_info_tick(mt5_sym)
+    if t is None or not t.time:
+        return 0.0, 0.0
+    last_msc = state.get("last_delta_msc")
+    if last_msc is None:
+        state["last_delta_msc"] = int(t.time_msc)
+        return 0.0, 0.0
+    from_sec = max(0, int(last_msc // 1000) - 1)
     try:
-        ticks = mt5.copy_ticks_from(symbol, from_dt, 100000, mt5.COPY_TICKS_INFO)
+        ticks = mt5.copy_ticks_from(mt5_sym, from_sec, 5000, mt5.COPY_TICKS_TRADE)
     except Exception:  # noqa: BLE001
         return 0.0, 0.0
     if ticks is None or len(ticks) == 0:
         return 0.0, 0.0
     buy = sell = 0.0
-    for t in ticks:
-        flags = int(t["flags"])
-        vol = float(t["volume"]) if t["volume"] else 1.0
+    max_msc = last_msc
+    for item in ticks:
+        msc = int(item["time_msc"])
+        if msc <= last_msc:
+            continue
+        if msc > max_msc:
+            max_msc = msc
+        flags = int(item["flags"])
+        vol = float(item["volume"]) if item["volume"] else 1.0
         if flags & mt5.TICK_FLAG_BUY:
             buy += vol
         elif flags & mt5.TICK_FLAG_SELL:
             sell += vol
+    state["last_delta_msc"] = max_msc
     return buy, sell
 
 
@@ -307,88 +371,151 @@ def closed_deals_msgs(symbol: str, magic: int, sent: set) -> list[dict]:
     return out
 
 
-async def broadcast(message: dict) -> None:
-    if not CLIENTS:
+async def broadcast_for_symbol(ui_sym: str, mt5_sym: str, message: dict) -> None:
+    targets = [ws for ws, sub in list(CLIENT_SUBS.items()) if sub == (ui_sym, mt5_sym)]
+    if not targets:
         return
     payload = json.dumps(message, ensure_ascii=False, default=str)
     dead = []
-    for ws in list(CLIENTS):
+    for ws in targets:
         try:
             await ws.send(payload)
         except websockets.ConnectionClosed:
             dead.append(ws)
     for ws in dead:
-        CLIENTS.discard(ws)
+        CLIENT_SUBS.pop(ws, None)
+
+
+async def send_initial_snapshot(websocket, ui_sym: str, mt5_sym: str) -> None:
+    data = get_symbol_data(mt5_sym, ui_sym, TIMEFRAME)
+    await websocket.send(json.dumps({
+        "type": "hello",
+        "symbol": ui_sym,
+        "mt5_symbol": mt5_sym,
+        "timeframe": TIMEFRAME,
+        "prev_close": data["prev_close"],
+    }))
+    bars = [bar_to_msg(ui_sym, TIMEFRAME, row) for row in data["m1"]]
+    for i in range(0, len(bars), 2000):
+        await websocket.send(json.dumps({"type": "bars", "symbol": ui_sym, "bars": bars[i:i + 2000]}, default=str))
+    if data["d1"]:
+        await websocket.send(json.dumps({"type": "d1_bars", "symbol": ui_sym, "bars": data["d1"]}, default=str))
+    t_msg = tick_msg(mt5_sym, ui_sym)
+    if t_msg:
+        await websocket.send(json.dumps(t_msg, default=str))
+    if ABC_AVAILABLE and DETECTOR is not None:
+        bars_snapshot = fetch_bars(mt5_sym, TIMEFRAME, HISTORY_COUNT)
+        pat = detect_pattern(DETECTOR, bars_snapshot, mt5_sym, TIMEFRAME)
+        if pat:
+            pat["symbol"] = ui_sym
+            await websocket.send(json.dumps(pat))
+    for m in open_positions_msgs(mt5_sym, MAGIC):
+        m["symbol"] = ui_sym
+        await websocket.send(json.dumps(m, default=str))
+    for m in closed_deals_msgs(mt5_sym, MAGIC, set()):
+        m["symbol"] = ui_sym
+        await websocket.send(json.dumps(m, default=str))
 
 
 async def handler(websocket, *_args) -> None:
-    CLIENTS.add(websocket)
-    log(f"cliente conectado ({len(CLIENTS)} ativos)")
+    req_path = extract_req_path(websocket, _args)
+    req_sym = parse_symbol_from_path(req_path) or SYMBOL
+    ui_sym, mt5_sym = resolve_mt5_symbol(req_sym)
+    CLIENT_SUBS[websocket] = (ui_sym, mt5_sym)
+    log(f"cliente conectado -> {ui_sym} ({mt5_sym}) · {len(CLIENT_SUBS)} ativo(s)")
     try:
-        await websocket.send(json.dumps({"type": "hello", "symbol": SYMBOL, "timeframe": TIMEFRAME}))
-        bars = [bar_to_msg(SYMBOL, TIMEFRAME, row) for row in HISTORY]
-        for i in range(0, len(bars), 2000):
-            await websocket.send(json.dumps({"type": "bars", "bars": bars[i:i + 2000]}, default=str))
-        if ABC_AVAILABLE and DETECTOR is not None:
-            bars_snapshot = fetch_bars(SYMBOL, TIMEFRAME, HISTORY_COUNT)
-            pat = detect_pattern(DETECTOR, bars_snapshot, SYMBOL, TIMEFRAME)
-            if pat:
-                await websocket.send(json.dumps(pat))
-        for m in open_positions_msgs(SYMBOL, MAGIC):
-            await websocket.send(json.dumps(m, default=str))
-        for m in closed_deals_msgs(SYMBOL, MAGIC, set()):
-            await websocket.send(json.dumps(m, default=str))
-        async for _ in websocket:
-            pass
+        await send_initial_snapshot(websocket, ui_sym, mt5_sym)
+        async for raw in websocket:
+            try:
+                msg = json.loads(raw)
+            except Exception:
+                continue
+            if isinstance(msg, dict) and msg.get("type") == "subscribe" and msg.get("symbol"):
+                new_ui, new_mt5 = resolve_mt5_symbol(str(msg["symbol"]))
+                CLIENT_SUBS[websocket] = (new_ui, new_mt5)
+                log(f"cliente alterou inscrição -> {new_ui} ({new_mt5})")
+                await send_initial_snapshot(websocket, new_ui, new_mt5)
     except websockets.ConnectionClosed:
         pass
     finally:
-        CLIENTS.discard(websocket)
-        log("cliente desconectado")
+        CLIENT_SUBS.pop(websocket, None)
+        log(f"cliente desconectado ({len(CLIENT_SUBS)} ativo(s))")
 
 
-async def poll_loop(symbol: str, timeframe: str, history: int, interval: float, magic: int, detector) -> None:
+async def poll_loop(timeframe: str, history: int, interval: float, magic: int, detector) -> None:
     tf = TIMEFRAMES[timeframe.upper()]
-    last_sent = None
-    last_pattern_key = None
-    sent_deals: set = set()
-    cum_buy = 0.0
-    cum_sell = 0.0
-    last_delta_dt = datetime.now()
+    sym_states: dict[str, dict] = {}
     while True:
         try:
-            tick = tick_msg(symbol)
-            if tick:
-                await broadcast(tick)
+            active_subs = set(CLIENT_SUBS.values())
+            for ui_sym, mt5_sym in active_subs:
+                st = sym_states.setdefault(mt5_sym, {
+                    "last_closed": None,
+                    "last_forming": None,
+                    "last_pattern_key": None,
+                    "sent_deals": set(),
+                    "cum_buy": 0.0,
+                    "cum_sell": 0.0,
+                    "last_delta_msc": None,
+                })
+                mt5.symbol_select(mt5_sym, True)
 
-            now_dt = datetime.now()
-            b, s = recent_tick_delta(symbol, last_delta_dt)
-            last_delta_dt = now_dt
-            if b or s:
-                cum_buy += b
-                cum_sell += s
-                await broadcast({"type": "delta", "buy": round(cum_buy), "sell": round(cum_sell), "net": round(cum_buy - cum_sell)})
+                t_msg = tick_msg(mt5_sym, ui_sym)
+                if t_msg:
+                    await broadcast_for_symbol(ui_sym, mt5_sym, t_msg)
 
-            rates = mt5.copy_rates_from_pos(symbol, tf, 0, 2)
-            if rates is not None and len(rates) >= 2:
-                closed = rates[-2]
-                key = int(closed["time"])
-                if key != last_sent:
-                    last_sent = key
-                    plain = rate_to_plain(closed)
-                    HISTORY.append(plain)
-                    await broadcast(bar_to_msg(symbol, timeframe, plain))
-                    if detector is not None:
-                        bars = fetch_bars(symbol, timeframe, history)
-                        pat = detect_pattern(detector, bars, symbol, timeframe)
-                        if pat and pat["key"] != last_pattern_key:
-                            last_pattern_key = pat["key"]
-                            await broadcast(pat)
+                b, s = recent_tick_delta(mt5_sym, st)
+                if b or s:
+                    st["cum_buy"] += b
+                    st["cum_sell"] += s
+                    await broadcast_for_symbol(ui_sym, mt5_sym, {
+                        "type": "delta",
+                        "symbol": ui_sym,
+                        "buy": round(st["cum_buy"]),
+                        "sell": round(st["cum_sell"]),
+                        "net": round(st["cum_buy"] - st["cum_sell"]),
+                    })
 
-            for m in open_positions_msgs(symbol, magic):
-                await broadcast(m)
-            for m in closed_deals_msgs(symbol, magic, sent_deals):
-                await broadcast(m)
+                rates = mt5.copy_rates_from_pos(mt5_sym, tf, 0, 2)
+                if rates is not None and len(rates) >= 2:
+                    closed = rates[-2]
+                    closed_key = int(closed["time"])
+                    if closed_key != st["last_closed"]:
+                        st["last_closed"] = closed_key
+                        plain = rate_to_plain(closed)
+                        cache = HISTORIES.get((mt5_sym, timeframe))
+                        if cache:
+                            cache["m1"].append(plain)
+                        await broadcast_for_symbol(ui_sym, mt5_sym, bar_to_msg(ui_sym, timeframe, plain))
+                        if detector is not None:
+                            bars = fetch_bars(mt5_sym, timeframe, history)
+                            pat = detect_pattern(detector, bars, mt5_sym, timeframe)
+                            if pat and pat["key"] != st["last_pattern_key"]:
+                                st["last_pattern_key"] = pat["key"]
+                                pat["symbol"] = ui_sym
+                                await broadcast_for_symbol(ui_sym, mt5_sym, pat)
+
+                if rates is not None and len(rates) >= 1:
+                    forming = rates[-1]
+                    f_sig = (
+                        int(forming["time"]),
+                        float(forming["close"]),
+                        float(forming["high"]),
+                        float(forming["low"]),
+                        int(forming["real_volume"]) or int(forming["tick_volume"]),
+                    )
+                    if f_sig != st["last_forming"]:
+                        st["last_forming"] = f_sig
+                        f_msg = bar_to_msg(ui_sym, timeframe, rate_to_plain(forming))
+                        f_msg["forming"] = True
+                        await broadcast_for_symbol(ui_sym, mt5_sym, f_msg)
+
+                for m in open_positions_msgs(mt5_sym, magic):
+                    m["symbol"] = ui_sym
+                    await broadcast_for_symbol(ui_sym, mt5_sym, m)
+                for m in closed_deals_msgs(mt5_sym, magic, st["sent_deals"]):
+                    m["symbol"] = ui_sym
+                    await broadcast_for_symbol(ui_sym, mt5_sym, m)
         except Exception as exc:  # noqa: BLE001
             log(f"erro no loop: {exc}")
         await asyncio.sleep(interval)
@@ -401,9 +528,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=int(os.environ.get("CV_PORT", "8000")))
     p.add_argument("--history", type=int, default=int(os.environ.get("CV_HISTORY", "600")), help="barras para o detector ABC")
-    p.add_argument("--history-days", type=int, default=int(os.environ.get("CV_HISTORY_DAYS", "365")), help="dias de histórico a carregar (padrão 365 = 1 ano)")
+    p.add_argument("--history-days", type=int, default=int(os.environ.get("CV_HISTORY_DAYS", "30")), help="dias de histórico a carregar (padrão 30)")
     p.add_argument("--refresh", action="store_true", help="força novo download do histórico (ignora cache)")
-    p.add_argument("--interval", type=float, default=1.0)
+    p.add_argument("--interval", type=float, default=0.5)
     p.add_argument("--config", default=str(DEFAULT_CONFIG), help="JSON de config do robô (detector + magic)")
     p.add_argument("--magic", type=int, default=None, help="Magic a filtrar (padrão: execution.magic do config)")
     p.add_argument("--mt5-path", default=os.environ.get("CV_MT5_PATH", r"C:\Program Files\MetaTrader 5\terminal64.exe"))
@@ -414,7 +541,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def main() -> None:
-    global SYMBOL, TIMEFRAME, HISTORY, MAGIC
+    global SYMBOL, TIMEFRAME, MAGIC, DETECTOR, HISTORY_COUNT, HISTORY_DAYS
     args = build_parser().parse_args()
     timeframe = args.timeframe.upper()
     if timeframe not in TIMEFRAMES:
@@ -450,27 +577,24 @@ async def main() -> None:
     if not mt5.initialize(**init_kwargs):
         log(f"falha ao inicializar MT5: {mt5.last_error()}")
         sys.exit(1)
-    log(f"MT5 conectado | símbolo={args.symbol} timeframe={timeframe} magic={magic}")
 
-    if not mt5.symbol_info(args.symbol):
-        log(f"símbolo não encontrado: {args.symbol}")
-        mt5.shutdown()
-        sys.exit(1)
+    ui_sym, mt5_sym = resolve_mt5_symbol(args.symbol)
+    log(f"MT5 conectado | símbolo padrão={ui_sym} ({mt5_sym}) timeframe={timeframe} magic={magic}")
 
-    history = load_history(args.symbol, timeframe, args.history_days, refresh=args.refresh)
-    log(f"{len(history)} barras de histórico carregadas")
+    for s in ["WINZ26", "WDOZ26", "IBOV", "PETR4", "VALE3", "ITUB4", "BBDC4"]:
+        mt5.symbol_select(s, True)
 
-    SYMBOL = args.symbol
+    SYMBOL = mt5_sym
     TIMEFRAME = timeframe
-    HISTORY = history
-
-    global DETECTOR, HISTORY_COUNT
     DETECTOR = detector
     HISTORY_COUNT = args.history
+    HISTORY_DAYS = args.history_days
+
+    get_symbol_data(mt5_sym, ui_sym, timeframe, refresh=args.refresh)
 
     async with websockets.serve(handler, args.host, args.port):
-        log(f"ouvindo em ws://{args.host}:{args.port}/ws")
-        await poll_loop(args.symbol, timeframe, args.history, args.interval, magic, detector)
+        log(f"ouvindo em ws://{args.host}:{args.port}/ws (multi-ativo dinâmico)")
+        await poll_loop(timeframe, args.history, args.interval, magic, detector)
 
 
 if __name__ == "__main__":
