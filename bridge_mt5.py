@@ -294,80 +294,114 @@ def recent_tick_delta(mt5_sym: str, state: dict) -> tuple[float, float]:
     return buy, sell
 
 
-def open_positions_msgs(symbol: str, magic: int) -> list[dict]:
+def symbol_matches(deal_sym: str, ui_sym: str, mt5_sym: str) -> bool:
+    s = (deal_sym or "").strip().upper()
+    u = (ui_sym or "").strip().upper()
+    m = (mt5_sym or "").strip().upper()
+    if not s:
+        return False
+    if u == "WIN":
+        return s.startswith("WIN")
+    if u == "WDO":
+        return s.startswith("WDO")
+    return s in (u, m)
+
+
+def open_positions_msgs(ui_sym: str, mt5_sym: str, magic: int | None) -> tuple[list[dict], set[int]]:
     out = []
+    open_ids: set[int] = set()
     try:
-        positions = mt5.positions_get(symbol=symbol)
+        positions = mt5.positions_get()
     except Exception:  # noqa: BLE001
-        return out
+        return out, open_ids
     for p in positions or []:
-        if p.magic != magic:
+        if not symbol_matches(p.symbol, ui_sym, mt5_sym):
             continue
+        if magic is not None and p.magic != magic:
+            continue
+        open_ids.add(int(p.ticket))
+        tag = f"magic {p.magic}" if p.magic else "manual"
         out.append({
             "type": "trade",
             "id": f"pos{p.ticket}",
-            "symbol": symbol,
+            "symbol": ui_sym,
+            "mt5_symbol": p.symbol,
             "direction": "compra" if p.type == mt5.POSITION_TYPE_BUY else "venda",
-            "scenario": "",
+            "scenario": f"{p.symbol} #{p.ticket} ({tag})",
             "entry_time": int(p.time),
             "entry_price": float(p.price_open),
             "exit_time": None,
             "exit_price": None,
-            "result": None,
+            "result": "open",
+            "volume": float(p.volume),
+            "profit": float(p.profit),
+            "magic": int(p.magic),
         })
-    return out
+    return out, open_ids
 
 
-def closed_deals_msgs(symbol: str, magic: int, sent: set) -> list[dict]:
+def closed_deals_msgs(
+    ui_sym: str,
+    mt5_sym: str,
+    magic: int | None,
+    sent: set,
+    open_pos_ids: set[int] | None = None,
+    days: int = 180,
+) -> list[dict]:
     out = []
     try:
-        deals = mt5.history_deals_get(datetime.now() - timedelta(days=3), datetime.now() + timedelta(days=1))
+        deals = mt5.history_deals_get(datetime.now() - timedelta(days=days), datetime.now() + timedelta(days=1))
     except Exception:  # noqa: BLE001
         return out
+    open_set = open_pos_ids or set()
     groups: dict[int, list] = {}
     for d in deals or []:
-        if d.magic != magic or d.symbol != symbol:
+        pos_id = int(getattr(d, "position_id", 0) or 0)
+        if pos_id <= 0 or pos_id in open_set:
             continue
-        groups.setdefault(d.position_id, []).append(d)
-    for ds in groups.values():
+        if not symbol_matches(d.symbol, ui_sym, mt5_sym):
+            continue
+        if magic is not None and d.magic != magic:
+            continue
+        groups.setdefault(pos_id, []).append(d)
+    for pos_id, ds in sorted(groups.items(), key=lambda kv: min(x.time for x in kv[1])):
         ins = [d for d in ds if d.entry in (mt5.DEAL_ENTRY_IN, mt5.DEAL_ENTRY_INOUT)]
         outs = [d for d in ds if d.entry in (mt5.DEAL_ENTRY_OUT, mt5.DEAL_ENTRY_INOUT)]
-        if not ins:
+        if not ins or not outs:
             continue
-        entry = min(ins, key=lambda d: d.time)
-        msg_id = f"deal{entry.ticket}"
+        msg_id = f"pos{pos_id}"
         if msg_id in sent:
             continue
         sent.add(msg_id)
+        entry = min(ins, key=lambda d: d.time)
+        exit_deal = max(outs, key=lambda d: d.time)
+        in_vol = sum(float(d.volume) for d in ins) or 1.0
+        out_vol = sum(float(d.volume) for d in outs) or 1.0
+        entry_price = sum(float(d.price) * float(d.volume) for d in ins) / in_vol
+        exit_price = sum(float(d.price) * float(d.volume) for d in outs) / out_vol
+        total_profit = sum(
+            float(d.profit) + float(getattr(d, "commission", 0.0)) + float(getattr(d, "swap", 0.0))
+            for d in ds
+        )
         direction = "compra" if entry.type == mt5.DEAL_TYPE_BUY else "venda"
-        if outs:
-            exit_deal = max(outs, key=lambda d: d.time)
-            result = "gain" if float(exit_deal.profit) > 0 else "stop"
-            out.append({
-                "type": "trade",
-                "id": msg_id,
-                "symbol": symbol,
-                "direction": direction,
-                "scenario": "",
-                "entry_time": int(entry.time),
-                "entry_price": float(entry.price),
-                "exit_time": int(exit_deal.time),
-                "exit_price": float(exit_deal.price),
-                "result": result,
-            })
-        else:
-            out.append({
-                "type": "trade",
-                "id": msg_id,
-                "symbol": symbol,
-                "direction": direction,
-                "scenario": "",
-                "entry_time": int(entry.time),
-                "entry_price": float(entry.price),
-                "exit_time": None,
-                "exit_price": None,
-                "result": None,
-            })
+        result = "gain" if total_profit >= 0 else "stop"
+        tag = f"magic {entry.magic}" if entry.magic else "manual"
+        out.append({
+            "type": "trade",
+            "id": msg_id,
+            "symbol": ui_sym,
+            "mt5_symbol": entry.symbol,
+            "direction": direction,
+            "scenario": f"{entry.symbol} #{pos_id} ({tag})",
+            "entry_time": int(entry.time),
+            "entry_price": round(entry_price, 4),
+            "exit_time": int(exit_deal.time),
+            "exit_price": round(exit_price, 4),
+            "result": result,
+            "volume": round(in_vol, 2),
+            "profit": round(total_profit, 2),
+            "magic": int(entry.magic),
+        })
     return out
 
 
@@ -412,12 +446,10 @@ async def send_initial_snapshot(websocket, ui_sym: str, mt5_sym: str) -> None:
         if pat:
             pat["symbol"] = ui_sym
             await websocket.send(json.dumps(pat))
-    for m in open_positions_msgs(mt5_sym, MAGIC):
-        m["symbol"] = ui_sym
-        await websocket.send(json.dumps(m, default=str))
-    for m in closed_deals_msgs(mt5_sym, MAGIC, set()):
-        m["symbol"] = ui_sym
-        await websocket.send(json.dumps(m, default=str))
+    open_msgs, open_ids = open_positions_msgs(ui_sym, mt5_sym, MAGIC)
+    closed_msgs = closed_deals_msgs(ui_sym, mt5_sym, MAGIC, set(), open_pos_ids=open_ids, days=180)
+    all_trades = closed_msgs + open_msgs
+    await websocket.send(json.dumps({"type": "trades", "symbol": ui_sym, "trades": all_trades}, default=str))
 
 
 async def handler(websocket, *_args) -> None:
@@ -513,11 +545,16 @@ async def poll_loop(timeframe: str, history: int, interval: float, magic: int, d
                         f_msg["forming"] = True
                         await broadcast_for_symbol(ui_sym, mt5_sym, f_msg)
 
-                for m in open_positions_msgs(mt5_sym, magic):
-                    m["symbol"] = ui_sym
-                    await broadcast_for_symbol(ui_sym, mt5_sym, m)
-                for m in closed_deals_msgs(mt5_sym, magic, st["sent_deals"]):
-                    m["symbol"] = ui_sym
+                open_msgs, open_ids = open_positions_msgs(ui_sym, mt5_sym, magic)
+                prev_open = st.setdefault("open_sigs", {})
+                for m in open_msgs:
+                    sig = (m["id"], round(m.get("profit") or 0.0, 2))
+                    if prev_open.get(m["id"]) != sig:
+                        prev_open[m["id"]] = sig
+                        await broadcast_for_symbol(ui_sym, mt5_sym, m)
+                for stale_id in [k for k in list(prev_open) if k not in {m["id"] for m in open_msgs}]:
+                    prev_open.pop(stale_id, None)
+                for m in closed_deals_msgs(ui_sym, mt5_sym, magic, st["sent_deals"], open_pos_ids=open_ids, days=7):
                     await broadcast_for_symbol(ui_sym, mt5_sym, m)
         except Exception as exc:  # noqa: BLE001
             log(f"erro no loop: {exc}")
@@ -555,16 +592,10 @@ async def main() -> None:
     detector = None
     magic = args.magic
     if config_path.exists():
-        with open(config_path, encoding="utf-8") as f:
-            cfg = json.load(f)
-        if magic is None:
-            magic = int(cfg.get("execution", {}).get("magic", 20261022))
         if ABC_AVAILABLE:
             detector = build_detector(config_path)
             log(f"detector ABC carregado do config: {config_path.name}")
     else:
-        if magic is None:
-            magic = 20261022
         log(f"config não encontrado: {config_path} (ABC desligado)")
     MAGIC = magic
 
@@ -582,7 +613,7 @@ async def main() -> None:
         sys.exit(1)
 
     ui_sym, mt5_sym = resolve_mt5_symbol(args.symbol)
-    log(f"MT5 conectado | símbolo padrão={ui_sym} ({mt5_sym}) timeframe={timeframe} magic={magic}")
+    log(f"MT5 conectado | símbolo padrão={ui_sym} ({mt5_sym}) timeframe={timeframe} magic={'todos' if magic is None else magic}")
 
     for s in ["WINZ26", "WDOZ26", "IBOV", "PETR4", "VALE3", "ITUB4", "BBDC4"]:
         mt5.symbol_select(s, True)

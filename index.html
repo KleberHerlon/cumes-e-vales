@@ -634,7 +634,7 @@
     function num(v, fb = NaN) { const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? fb : n; }
     function ts(v) { const n = Number(v); if (isFinite(n) && n > 1e11) return Math.floor(n / 1000); if (isFinite(n) && n > 1e9) return n; const d = new Date(String(v).replace(' ', 'T')); return isNaN(d.getTime()) ? null : Math.floor(d.getTime() / 1000); }
     function dirFrom(raw) { const s = String(raw || '').toUpperCase(); return ['COMPRA', 'C', 'BUY', 'LONG', '1'].includes(s) ? 'compra' : 'venda'; }
-    function resultFrom(raw, r) { if (typeof r === 'number' && isFinite(r)) return r > 0 ? 'gain' : r < 0 ? 'stop' : 'filtered'; const s = String(raw || '').toLowerCase(); if (['target', 'gain', 'win', 'tp'].includes(s)) return 'gain'; if (['stop', 'loss', 'sl'].includes(s)) return 'stop'; return 'filtered'; }
+    function resultFrom(raw, r) { if (typeof r === 'number' && isFinite(r)) return r > 0 ? 'gain' : r < 0 ? 'stop' : 'filtered'; const s = String(raw || '').toLowerCase(); if (['open', 'aberta', 'active'].includes(s)) return null; if (['target', 'gain', 'win', 'tp'].includes(s)) return 'gain'; if (['stop', 'loss', 'sl'].includes(s)) return 'stop'; return 'filtered'; }
 
     function normalizeAssetGroup(s) {
       const u = String(s || '').trim().toUpperCase();
@@ -1793,7 +1793,16 @@
       const dec = getPriceDecimals(trade.entryPrice);
       let pts = null;
       if (trade.exitPrice != null) pts = trade.direction === 'compra' ? trade.exitPrice - trade.entryPrice : trade.entryPrice - trade.exitPrice;
-      const parts = [`${dir} ${symbol}`, trade.scenario || '', `Entrada ${fmtPrice(trade.entryPrice, dec)} → ${trade.exitPrice != null ? fmtPrice(trade.exitPrice, dec) : '—'}`, `${res}${pts != null ? ' (' + (pts >= 0 ? '+' : '') + pts.toFixed(dec) + ' pts)' : ''}`];
+      const volTxt = trade.volume != null && isFinite(trade.volume) ? `${trade.volume} contr.` : '';
+      const profTxt = trade.profit != null && isFinite(trade.profit) ? `R$ ${trade.profit >= 0 ? '+' : ''}${trade.profit.toFixed(2)}` : '';
+      const parts = [
+        `${dir} ${trade.mt5_symbol || symbol}`,
+        trade.scenario || '',
+        volTxt,
+        `Entrada ${fmtPrice(trade.entryPrice, dec)} → ${trade.exitPrice != null ? fmtPrice(trade.exitPrice, dec) : 'ABERTA'}`,
+        `${res}${pts != null ? ' (' + (pts >= 0 ? '+' : '') + pts.toFixed(dec) + ' pts)' : ''}`,
+        profTxt,
+      ];
       showToast(parts.filter(Boolean).join(' · '));
     }
 
@@ -2230,7 +2239,10 @@
       document.getElementById('stat-price-range').textContent = `${fmtPrice(scale.minPrice, dec)} - ${fmtPrice(scale.maxPrice, dec)}`;
       document.getElementById('stat-poc').textContent = Math.round(maxCellVol).toLocaleString('pt-BR');
       document.getElementById('stat-poc-zone').textContent = `${yLabels[pocY] ?? '—'} (${xLabels[pocX] ?? '—'})`;
-      document.getElementById('stat-abc').textContent = `${visTrades.length} (${visTrades.filter((t) => t.result === 'gain').length}G/${visTrades.filter((t) => t.result === 'stop').length}S)`;
+      const gainCnt = visTrades.filter((t) => t.result === 'gain').length;
+      const stopCnt = visTrades.filter((t) => t.result === 'stop').length;
+      const openCnt = visTrades.filter((t) => !t.exitTime).length;
+      document.getElementById('stat-abc').textContent = `${visTrades.length} (${gainCnt}G/${stopCnt}S${openCnt ? '/' + openCnt + 'A' : ''})`;
       const pLabel = 'Datas';
       const el = document.getElementById('stat-period');
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
@@ -2416,6 +2428,47 @@
       pipDirty = false;
     }
 
+    function upsertLiveTrade(m) {
+      const entryTime = ts(m.entry_time);
+      if (entryTime == null) return false;
+      const exitTime = m.exit_time != null ? ts(m.exit_time) : null;
+      const exitPrice = m.exit_price != null ? num(m.exit_price, null) : null;
+      const res = m.result != null && m.result !== 'open' ? resultFrom(m.result, num(m.result_r)) : null;
+      const vol = num(m.volume, 1);
+      const profit = m.profit != null ? num(m.profit, null) : null;
+      const id = m.id ?? `ws${entryTime}`;
+      const existing = trades.find((t) => t.id === id);
+      if (existing) {
+        const closedNow = (!existing.exitTime && exitTime != null) || (existing.result !== res);
+        existing.exitTime = exitTime;
+        existing.exitM = exitTime != null ? todMin(exitTime) : null;
+        if (exitPrice != null) existing.exitPrice = exitPrice;
+        existing.result = res;
+        existing.volume = vol;
+        if (profit != null) existing.profit = profit;
+        return closedNow;
+      }
+      const tr = {
+        id,
+        symbol: String(m.symbol || symbol).toUpperCase(),
+        mt5_symbol: m.mt5_symbol || '',
+        direction: dirFrom(m.direction ?? m.side),
+        scenario: m.scenario || '',
+        entryTime,
+        entryM: todMin(entryTime),
+        entryPrice: num(m.entry ?? m.entry_price),
+        exitTime,
+        exitM: exitTime != null ? todMin(exitTime) : null,
+        exitPrice,
+        result: res,
+        volume: vol,
+        profit,
+        magic: m.magic,
+      };
+      trades.push(tr);
+      return true;
+    }
+
     function handleLiveMessage(msg) {
       const type = msg.type || msg.t;
       if (type === 'hello') {
@@ -2441,6 +2494,8 @@
         rawMarketData = [];
         dailyMarketData = [];
         barTimes = new Set();
+        trades = [];
+        pivots = [];
         clearDateFilter();
         presetApplied = false;
         const bt = document.getElementById('badge-text');
@@ -2555,11 +2610,14 @@
         const piv = { symbol: String(msg.symbol || '').toUpperCase(), a: { t: aT, m: todMin(aT), p: num(msg.a_price ?? msg.a?.price) }, b: { t: bT, m: todMin(bT), p: num(msg.b_price ?? msg.b?.price) }, c: { t: cT, m: todMin(cT), p: num(msg.c_price ?? msg.c?.price) }, scenario: msg.scenario || '', direction: dirFrom(msg.direction ?? msg.side), result: resultFrom(msg.result, num(msg.result_r)) };
         if (oT != null && isFinite(oP)) piv.o = { t: oT, m: todMin(oT), p: oP };
         if (!pivots.some((x) => x.symbol === piv.symbol && x.c.t === piv.c.t && x.a.t === piv.a.t)) pivots.push(piv);
+      } else if (type === 'trades') {
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
+        for (const m of msg.trades || []) upsertLiveTrade(m);
+        updateVisualization();
+        return;
       } else if (type === 'trade') {
-        const entryTime = ts(msg.entry_time); if (entryTime == null) return;
-        const existing = trades.find((t) => t.id === msg.id);
-        if (existing) { existing.exitTime = ts(msg.exit_time) ?? null; existing.exitM = existing.exitTime ? todMin(existing.exitTime) : null; existing.exitPrice = num(msg.exit_price, existing.exitPrice); if (msg.result) existing.result = resultFrom(msg.result, num(msg.result_r)); }
-        else trades.push({ id: msg.id ?? `ws${entryTime}`, symbol: String(msg.symbol || '').toUpperCase(), direction: dirFrom(msg.direction ?? msg.side), scenario: msg.scenario || '', entryTime, entryM: todMin(entryTime), entryPrice: num(msg.entry ?? msg.entry_price), exitTime: ts(msg.exit_time) ?? null, exitM: ts(msg.exit_time) != null ? todMin(ts(msg.exit_time)) : null, exitPrice: num(msg.exit_price), result: msg.result ? resultFrom(msg.result, num(msg.result_r)) : null });
+        if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
+        if (!upsertLiveTrade(msg)) return;
       }
       updateVisualization();
     }
