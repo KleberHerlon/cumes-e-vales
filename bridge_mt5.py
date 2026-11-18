@@ -215,7 +215,7 @@ def get_symbol_data(mt5_sym: str, ui_sym: str, timeframe: str = "M1", refresh: b
 
     mt5.symbol_select(mt5_sym, True)
     tf = TIMEFRAMES[timeframe.upper()]
-    rates_m1 = mt5.copy_rates_from_pos(mt5_sym, tf, 0, 4000)
+    rates_m1 = mt5.copy_rates_from_pos(mt5_sym, tf, 0, 25000)
     if rates_m1 is not None and len(rates_m1) > 0:
         m1_rows = [rate_to_plain(r) for r in rates_m1]
     else:

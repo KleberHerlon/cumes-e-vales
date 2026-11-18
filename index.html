@@ -507,6 +507,8 @@
     let showTrail = false;
     let tzOffsetHours = 0;
     let presetApplied = false;
+    let activePresetDays = 2;
+    let activePresetId = 'preset-day';
     let filterStart = SESSION_START;
     let filterEnd = SESSION_END;
     let priceMin = null;
@@ -855,8 +857,11 @@
           const dm = String(rawDate).match(/(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
           if (dm) t = Date.UTC(+dm[1], +dm[2] - 1, +dm[3], 0, 0, 0) / 1000 + (minuteOfDay - tzOffsetHours * 60) * 60;
           else t = ts(rawDate) ?? (Date.UTC(2026, 0, 5, 0, 0, 0) / 1000 + dayCounter * 86400 + minuteOfDay * 60);
-          rawMarketData.push({ dayIndex: Math.max(0, dayCounter - 1), minuteOfDay, timeLabel: fmtHM(minuteOfDay), time: t, open, high, low, close: price, volume: vol });
-          added++;
+          if (!barTimes.has(t)) {
+            barTimes.add(t);
+            rawMarketData.push({ dayIndex: Math.max(0, dayCounter - 1), minuteOfDay, timeLabel: fmtHM(minuteOfDay), time: t, open, high, low, close: price, volume: vol });
+            added++;
+          }
         }
       } else if (has(['entry_time', 'entrada', 'abertura', 'entry'])) {
         for (const r of rows) {
@@ -1181,19 +1186,27 @@
     }
 
     function drawDayBoundaries(slice, zHalf) {
+      const transitions = [];
       let prevKey = null;
       for (let i = 0; i < slice.length; i++) {
         const key = localDateKey(slice[i].time);
         if (prevKey != null && key !== prevKey) {
-          const x = (i / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
-          const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.1, -zHalf), new THREE.Vector3(x, 0.1, zHalf)]);
-          sceneGroup.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4 })));
-          const lbl = makeTextSprite(fmtDate(slice[i - 1].time), '#cbd5e1', 7, 1.6);
-          lbl.position.set(x, 0.3, zHalf + 1.2);
-          sceneGroup.add(lbl);
+          transitions.push({ idx: i, label: fmtDate(slice[i].time) });
         }
         prevKey = key;
       }
+      const maxLabels = 10;
+      const step = Math.max(1, Math.ceil(transitions.length / maxLabels));
+      transitions.forEach((tr, ti) => {
+        const x = (tr.idx / (slice.length - 1 || 1) - 0.5) * PLANE_WIDTH;
+        const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.1, -zHalf), new THREE.Vector3(x, 0.1, zHalf)]);
+        sceneGroup.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: transitions.length > 16 ? 0.22 : 0.4 })));
+        if (ti % step === 0) {
+          const lbl = makeTextSprite(tr.label, '#cbd5e1', 7, 1.6);
+          lbl.position.set(x, 0.3, zHalf + 1.2);
+          sceneGroup.add(lbl);
+        }
+      });
     }
 
     function buildBaseGridAndLabels(xLabels, yLabels) {
@@ -1357,15 +1370,48 @@
       updateStats(pocX, pocY, xLabels, yLabels, maxCellVol);
     }
 
+    function aggregateTrailSlice(bars, maxBars) {
+      if (bars.length <= maxBars) return bars;
+      const out = [];
+      const n = bars.length;
+      for (let i = 0; i < maxBars; i++) {
+        const start = Math.floor((i * n) / maxBars);
+        const end = Math.max(start + 1, Math.floor(((i + 1) * n) / maxBars));
+        const first = bars[start];
+        const last = bars[end - 1];
+        let high = -Infinity, low = Infinity, vol = 0;
+        for (let j = start; j < end; j++) {
+          const b = bars[j];
+          if (b.high > high) high = b.high;
+          if (b.low < low) low = b.low;
+          vol += b.volume;
+        }
+        out.push({
+          dayIndex: last.dayIndex,
+          minuteOfDay: last.minuteOfDay,
+          timeLabel: last.timeLabel,
+          time: last.time,
+          startTime: first.time,
+          open: first.open,
+          high,
+          low,
+          close: last.close,
+          volume: vol,
+          rawCount: end - start,
+        });
+      }
+      return out;
+    }
+
     function renderLinearTrailView() {
       document.getElementById('legend-x').textContent = 'Sequência Temporal';
       document.getElementById('legend-y').textContent = 'Preço';
       document.getElementById('tt-label-x').textContent = 'Registro / Hora:';
       document.getElementById('tt-label-y').textContent = 'Preço:';
       terrainState = null;
-      const maxBars = showIntraBar ? 240 : 520;
-      const slice = activeData.slice(-maxBars);
-      if (!slice.length) { trailState = null; return; }
+      if (!activeData.length) { trailState = null; return; }
+      const maxBars = showIntraBar ? 320 : 640;
+      const slice = aggregateTrailSlice(activeData, maxBars);
       let minPrice = Infinity, maxPrice = -Infinity, maxVol = 0;
       for (const d of slice) {
         if (d.low < minPrice) minPrice = d.low;
@@ -1379,12 +1425,13 @@
       const buckets = new Map();
       const bucketBestIdx = new Map();
       const bucketBestVol = new Map();
-      slice.forEach((d, idx) => {
+      activeData.forEach((d, rawIdx) => {
         const k = bucketPrice(d.close);
         buckets.set(k, (buckets.get(k) || 0) + d.volume);
         if (d.volume >= (bucketBestVol.get(k) ?? -1)) {
           bucketBestVol.set(k, d.volume);
-          bucketBestIdx.set(k, idx);
+          const sliceIdx = Math.min(slice.length - 1, Math.floor((rawIdx / (activeData.length || 1)) * slice.length));
+          bucketBestIdx.set(k, sliceIdx);
         }
       });
       const candidates = [...buckets.entries()].map(([price, vol]) => ({ price, vol, xIndex: bucketBestIdx.get(price) ?? 0, yIndex: 0 }));
@@ -1392,10 +1439,13 @@
       pocs = selectAndRankPocs(candidates, nPocs, curTrailP, getPriceBucketStep() * 1.5);
       pocPrice = pocs.length ? pocs[0].price : curTrailP;
       if (selectedPocIndex >= pocs.length) selectedPocIndex = 0;
-      computeAnalytics(slice);
+      computeAnalytics(activeData);
 
       const dec = getPriceDecimals(maxPrice);
-      const xLabels = [slice[0].timeLabel, '', '', slice[Math.floor(slice.length / 2)].timeLabel, '', '', slice[slice.length - 1].timeLabel];
+      const multiDay = activeWindow.days.size > 1;
+      const fmtTrailX = (b) => multiDay ? `${fmtDate(b.time)} ${b.timeLabel}` : b.timeLabel;
+      const midBar = slice[Math.floor(slice.length / 2)];
+      const xLabels = [fmtTrailX(slice[0]), '', '', fmtTrailX(midBar), '', '', fmtTrailX(slice[slice.length - 1])];
       const yLabels = [fmtPrice(minPrice, dec), fmtPrice((minPrice + maxPrice) / 2, dec), fmtPrice(maxPrice, dec)];
       buildBaseGridAndLabels(xLabels, yLabels);
 
@@ -1470,8 +1520,9 @@
       }
 
       drawDayBoundaries(slice, PLANE_DEPTH / 2);
-      const maxSliceBar = slice.reduce((a, b) => (b.volume > a.volume ? b : a), slice[0]);
-      updateStats(0, 0, [maxSliceBar.timeLabel], [fmtPrice(pocPrice ?? slice[slice.length - 1].close, dec)], maxVol, slice);
+      const maxRawBar = activeData.reduce((a, b) => (b.volume > a.volume ? b : a), activeData[0]);
+      const maxLbl = activeWindow.days.size > 1 ? `${fmtDate(maxRawBar.time)} ${maxRawBar.timeLabel}` : maxRawBar.timeLabel;
+      updateStats(0, 0, [maxLbl], [fmtPrice(pocPrice ?? slice[slice.length - 1].close, dec)], pocs.length ? pocs[0].vol : maxVol, activeData);
       document.getElementById('stat-price-range').textContent = `${fmtPrice(minPrice, dec)} - ${fmtPrice(maxPrice, dec)}`;
     }
 
@@ -1738,7 +1789,7 @@
       if (!showABC) return;
       const isTrail = viewMode === 'trail';
       if (isTrail && (!trailState || !trailState.slice.length)) return;
-      const tMin = isTrail ? trailState.slice[0].time : -Infinity;
+      const tMin = isTrail ? (trailState.slice[0].startTime ?? trailState.slice[0].time) : -Infinity;
       const tMax = isTrail ? trailState.slice[trailState.slice.length - 1].time : Infinity;
       const visible = [];
       for (const piv of pivots) {
@@ -1789,7 +1840,7 @@
       priceLine = null;
       const isTrail = viewMode === 'trail';
       if (isTrail && (!trailState || !trailState.slice.length)) return;
-      const tMin = isTrail ? trailState.slice[0].time : -Infinity;
+      const tMin = isTrail ? (trailState.slice[0].startTime ?? trailState.slice[0].time) : -Infinity;
       const tMax = isTrail ? trailState.slice[trailState.slice.length - 1].time : Infinity;
       for (const trade of trades) {
         const open = !trade.exitTime;
@@ -2660,6 +2711,7 @@
     function handleLiveMessage(msg) {
       const type = msg.type || msg.t;
       if (type === 'hello') {
+        const sameSym = !manualCsvMode && (!msg.symbol || matchesCurrentSymbol(msg.symbol));
         manualCsvMode = false;
         if (msg.symbol) {
           const liveSym = String(msg.symbol).trim().toUpperCase();
@@ -2679,13 +2731,14 @@
           }
         }
         wsPrevClose = isFinite(Number(msg.prev_close)) && Number(msg.prev_close) > 0 ? Number(msg.prev_close) : null;
-        rawMarketData = [];
+        if (!sameSym) {
+          rawMarketData = [];
+          barTimes = new Set();
+        }
         dailyMarketData = [];
-        barTimes = new Set();
         trades = [];
         pivots = [];
-        clearDateFilter();
-        presetApplied = false;
+        if (!presetApplied) clearDateFilter();
         const bt = document.getElementById('badge-text');
         if (bt) bt.textContent = `Ao Vivo · ${symbol}${liveMt5Symbol && liveMt5Symbol !== symbol ? ' (' + liveMt5Symbol + ')' : ''}`;
         setBadge('live');
@@ -2695,15 +2748,23 @@
       }
       if (type === 'bars') {
         if (msg.symbol && !matchesCurrentSymbol(msg.symbol)) return;
+        const byTime = new Map();
+        for (const eb of rawMarketData) byTime.set(eb.time, eb);
         for (const b of msg.bars || []) {
-          const time = ts(b.time ?? b.ts); if (time == null || barTimes.has(time)) continue;
-          barTimes.add(time);
+          const time = ts(b.time ?? b.ts); if (time == null) continue;
           const close = num(b.close ?? b.c); if (!isFinite(close)) continue;
-          rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
+          const m = todMin(time);
+          byTime.set(time, { dayIndex: 0, minuteOfDay: m, timeLabel: fmtHM(m), time, open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
         }
+        rawMarketData = [...byTime.values()];
+        barTimes = new Set(byTime.keys());
         if (!msg.more) {
           rawMarketData.sort((a, b) => a.time - b.time);
-          presetApplied = false;
+          if (activePresetDays != null) {
+            setDatePreset(activePresetDays);
+            stylePreset(activePresetId);
+            presetApplied = true;
+          }
           pipDirty = true;
           updateVisualization();
         }
@@ -2943,14 +3004,14 @@
       document.getElementById('toggle-abc').addEventListener('change', (e) => { showABC = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-liquidity').addEventListener('change', (e) => { simulateLiquidity = e.target.checked; if (simulateLiquidity) startLiquiditySim(); else stopLiquiditySim(); });
-      document.getElementById('preset-day').addEventListener('click', () => { setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
-      document.getElementById('preset-week').addEventListener('click', () => { setDatePreset(7); stylePreset('preset-week'); updateVisualization(); });
-      document.getElementById('preset-month').addEventListener('click', () => { setDatePreset(30); stylePreset('preset-month'); updateVisualization(); });
-      document.getElementById('preset-year').addEventListener('click', () => { setDatePreset(365); stylePreset('preset-year'); updateVisualization(); });
+      document.getElementById('preset-day').addEventListener('click', () => { activePresetDays = 2; activePresetId = 'preset-day'; setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
+      document.getElementById('preset-week').addEventListener('click', () => { activePresetDays = 7; activePresetId = 'preset-week'; setDatePreset(7); stylePreset('preset-week'); updateVisualization(); });
+      document.getElementById('preset-month').addEventListener('click', () => { activePresetDays = 30; activePresetId = 'preset-month'; setDatePreset(30); stylePreset('preset-month'); updateVisualization(); });
+      document.getElementById('preset-year').addEventListener('click', () => { activePresetDays = 365; activePresetId = 'preset-year'; setDatePreset(365); stylePreset('preset-year'); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
-      document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; stylePreset(''); updateVisualization(); });
-      document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; stylePreset(''); updateVisualization(); });
-      document.getElementById('btn-clear-dates').addEventListener('click', () => { clearDateFilter(); presetApplied = true; stylePreset(''); updateVisualization(); });
+      document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; activePresetDays = null; activePresetId = ''; stylePreset(''); updateVisualization(); });
+      document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; activePresetDays = null; activePresetId = ''; stylePreset(''); updateVisualization(); });
+      document.getElementById('btn-clear-dates').addEventListener('click', () => { clearDateFilter(); presetApplied = true; activePresetDays = null; activePresetId = ''; stylePreset(''); updateVisualization(); });
       document.getElementById('time-preset-all').addEventListener('click', () => applyTimeWindow(SESSION_START, SESSION_END, 'time-preset-all'));
       document.getElementById('time-preset-am').addEventListener('click', () => applyTimeWindow(540, 750, 'time-preset-am'));
       document.getElementById('time-preset-pm').addEventListener('click', () => applyTimeWindow(750, SESSION_END, 'time-preset-pm'));
