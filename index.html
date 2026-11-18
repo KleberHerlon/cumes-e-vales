@@ -1419,6 +1419,7 @@
         return;
       }
       if (!terrainState) return;
+      const placedBanners = [];
       pocs.forEach((poc, idx) => {
         const isFocus = selectedPocIndex === -1 ? idx === 0 : selectedPocIndex === idx;
         const primary = idx === 0 || isFocus;
@@ -1437,11 +1438,20 @@
           ring.position.set(x, h, z);
           overlayGroup.add(ring);
         }
-        const pinH = isFocus ? 3.4 : 2.2;
-        const pinGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, h, z), new THREE.Vector3(x, h + pinH, z)]);
+        let pinH = isFocus ? 4.4 : 2.1;
+        let bx = x;
+        for (const prev of placedBanners) {
+          if (Math.hypot(bx - prev.x, z - prev.z) < 12 && Math.abs((h + pinH) - prev.y) < 3.2) {
+            pinH += 3.2;
+            bx += (idx % 2 === 0 ? -4.5 : 4.5);
+          }
+        }
+        const by = h + pinH + 0.9;
+        placedBanners.push({ x: bx, y: by, z });
+        const pinGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, h, z), new THREE.Vector3(bx, h + pinH, z)]);
         overlayGroup.add(new THREE.Line(pinGeo, new THREE.LineBasicMaterial({ color: glowCol, transparent: true, opacity: isFocus ? 0.85 : 0.45, depthWrite: false })));
         const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus);
-        banner.position.set(x, h + pinH + 1.0, z);
+        banner.position.set(bx, by, z);
         overlayGroup.add(banner);
       });
     }
@@ -2289,6 +2299,7 @@
         rawMarketData = [];
         dailyMarketData = [];
         barTimes = new Set();
+        clearDateFilter();
         presetApplied = false;
         const bt = document.getElementById('badge-text');
         if (bt) bt.textContent = `Ao Vivo · ${symbol}${liveMt5Symbol && liveMt5Symbol !== symbol ? ' (' + liveMt5Symbol + ')' : ''}`;
@@ -2305,9 +2316,12 @@
           const close = num(b.close ?? b.c); if (!isFinite(close)) continue;
           rawMarketData.push({ dayIndex: 0, minuteOfDay: todMin(time), timeLabel: fmtHM(todMin(time)), time, open: num(b.open ?? b.o, close), high: num(b.high ?? b.h, close), low: num(b.low ?? b.l, close), close, volume: num(b.volume ?? b.vol ?? b.tick_volume, 0) });
         }
-        rawMarketData.sort((a, b) => a.time - b.time);
-        pipDirty = true;
-        updateVisualization();
+        if (!msg.more) {
+          rawMarketData.sort((a, b) => a.time - b.time);
+          presetApplied = false;
+          pipDirty = true;
+          updateVisualization();
+        }
         return;
       }
       if (type === 'd1_bars') {

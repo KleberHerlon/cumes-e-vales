@@ -396,8 +396,11 @@ async def send_initial_snapshot(websocket, ui_sym: str, mt5_sym: str) -> None:
         "prev_close": data["prev_close"],
     }))
     bars = [bar_to_msg(ui_sym, TIMEFRAME, row) for row in data["m1"]]
+    if not bars:
+        await websocket.send(json.dumps({"type": "bars", "symbol": ui_sym, "bars": [], "more": False}))
     for i in range(0, len(bars), 2000):
-        await websocket.send(json.dumps({"type": "bars", "symbol": ui_sym, "bars": bars[i:i + 2000]}, default=str))
+        chunk = bars[i:i + 2000]
+        await websocket.send(json.dumps({"type": "bars", "symbol": ui_sym, "bars": chunk, "more": (i + 2000) < len(bars)}, default=str))
     if data["d1"]:
         await websocket.send(json.dumps({"type": "d1_bars", "symbol": ui_sym, "bars": data["d1"]}, default=str))
     t_msg = tick_msg(mt5_sym, ui_sym)
