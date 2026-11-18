@@ -89,6 +89,7 @@
             <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
           </div>
           <div class="flex justify-between"><span class="text-slate-400">Delta (Compra-Venda):</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Delta na POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Absorção da POC:</span><span id="an-absorption" class="font-mono font-semibold text-emerald-400">50%</span></div>
           <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="an-abs-bar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500" style="width:50%"></div></div>
           <div class="flex justify-between"><span class="text-slate-400">VWSD (valor):</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
@@ -295,7 +296,7 @@
 
         <div class="bg-dark-950/80 border border-slate-800/90 p-3 rounded-xl space-y-1.5">
           <h3 class="font-semibold text-slate-200 flex items-center gap-1.5 text-[11px]"><i class="fa-solid fa-compass text-indigo-400"></i> Leitura Topográfica</h3>
-          <p class="text-[11px] text-slate-400 leading-relaxed">Sobreposição dos horários do pregão no plano <b class="text-slate-300">X × Y</b>: montanhas quentes revelam onde os players concentram liquidez. No <b class="text-slate-300">Tempo Real</b>, o rastro dourado traça a operação aberta até o fechamento, seguindo os requisitos do robô <b class="text-cyan-300">Piolho Agressivo</b>.</p>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Sobreposição dos horários do pregão no plano <b class="text-slate-300">X × Y</b>: montanhas quentes revelam onde os players concentram liquidez.</p>
         </div>
       </div>
     </aside>
@@ -1252,7 +1253,7 @@
     }
 
     function computeAnalytics() {
-      if (!activeData.length) { analytics = { pocPrice: null, delta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 }; return; }
+      if (!activeData.length) { analytics = { pocPrice: null, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0 }; return; }
       let wsum = 0, mean = 0;
       for (const b of activeData) { mean += b.close * b.volume; wsum += b.volume; }
       mean = wsum ? mean / wsum : 0;
@@ -1260,9 +1261,27 @@
       for (const b of activeData) { const d = b.close - mean; vvar += b.volume * d * d; vskew += b.volume * d * d * d; }
       const vwsd = wsum ? Math.sqrt(vvar / wsum) : 0;
       const skew = (wsum && vwsd > 0) ? (vskew / wsum) / Math.pow(vwsd, 3) : 0;
+
+      const deltaMap = new Map();
+      const volMap = new Map();
       let delta = 0;
-      for (const b of activeData) delta += b.volume * (b.close >= b.open ? 1 : -1);
-      const absorption = wsum ? Math.max(0, Math.min(1, 0.5 + (delta / wsum) * 0.5)) : 0.5;
+      for (const b of activeData) {
+        const d = b.volume * (b.close >= b.open ? 1 : -1);
+        delta += d;
+        const k = Math.round(b.close / 50) * 50;
+        deltaMap.set(k, (deltaMap.get(k) || 0) + d);
+        volMap.set(k, (volMap.get(k) || 0) + b.volume);
+      }
+
+      let pocDelta = 0, pocVol = 0;
+      const n = Math.min(pocs.length || 0, Math.max(1, nPocs));
+      for (let i = 0; i < n; i++) {
+        const k = Math.round(pocs[i].price / 50) * 50;
+        pocDelta += deltaMap.get(k) || 0;
+        pocVol += volMap.get(k) || 0;
+      }
+      const absorption = pocVol ? Math.max(0, Math.min(1, 1 - Math.abs(pocDelta) / pocVol)) : 0.5;
+
       let meanVol = 0, cnt = 0;
       for (const b of activeData) { meanVol += b.volume; cnt++; }
       meanVol = cnt ? meanVol / cnt : 0;
@@ -1271,7 +1290,8 @@
       stdVol = cnt ? Math.sqrt(stdVol / cnt) : 0;
       let maxZ = 0;
       for (const b of activeData) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
-      analytics = { pocPrice, delta, absorption, vwsd, skew, maxZ };
+
+      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ };
     }
 
     function renderPiP() {
@@ -1381,6 +1401,7 @@
       const an = analytics;
       const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
       set('an-delta', `${an.delta >= 0 ? '+' : ''}${Math.round(an.delta).toLocaleString('pt-BR')}`);
+      set('an-poc-delta', `${an.pocDelta >= 0 ? '+' : ''}${Math.round(an.pocDelta).toLocaleString('pt-BR')}${an.pocDelta >= 0 ? ' ▲' : ' ▼'}`);
       set('an-absorption', `${Math.round(an.absorption * 100)}%`);
       set('an-vwsd', `${an.vwsd.toFixed(1)} pts`);
       set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
@@ -1388,6 +1409,8 @@
       set('an-liquidity', `${Math.round(liquidity * 100)}%`);
       const ab = document.getElementById('an-abs-bar');
       if (ab) ab.style.width = `${Math.round(an.absorption * 100)}%`;
+      const pc = document.getElementById('an-poc-delta');
+      if (pc) pc.className = 'font-mono font-semibold ' + (an.pocDelta >= 0 ? 'text-emerald-400' : 'text-rose-400');
     }
 
     function updateVisualization() {
