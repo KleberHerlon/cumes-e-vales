@@ -921,9 +921,9 @@
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true })); s.scale.set(w, h, 1); return s;
     }
 
-    function makePocCalloutSprite(rank, priceStr, volStr, isSelected = true) {
+    function makePocCalloutSprite(rank, priceStr, volStr, isSelected = true, isClosest = false) {
       const cv = document.createElement('canvas');
-      cv.width = 512; cv.height = 96;
+      cv.width = 560; cv.height = 96;
       const ctx = cv.getContext('2d');
       const pad = 6;
       ctx.clearRect(0, 0, cv.width, cv.height);
@@ -934,8 +934,9 @@
       ctx.lineWidth = isSelected ? 4 : 2.5;
       ctx.strokeStyle = isSelected ? '#fbbf24' : '#38bdf8';
       ctx.stroke();
-      const text = isSelected ? `POC #${rank}: ${priceStr} | VOL: ${volStr}` : `POC #${rank}: ${priceStr} · ${volStr}`;
-      ctx.font = isSelected ? '700 26px ui-monospace, SFMono-Regular, Menlo, monospace' : '600 22px ui-monospace, SFMono-Regular, Menlo, monospace';
+      const tag = isClosest ? `POC #${rank} (PRÓX)` : `POC #${rank}`;
+      const text = isSelected ? `${tag}: ${priceStr} | VOL: ${volStr}` : `${tag}: ${priceStr} · ${volStr}`;
+      ctx.font = isSelected ? '700 25px ui-monospace, SFMono-Regular, Menlo, monospace' : '600 21px ui-monospace, SFMono-Regular, Menlo, monospace';
       ctx.fillStyle = isSelected ? '#fef3c7' : '#cbd5e1';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -944,8 +945,32 @@
       const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
       const sp = new THREE.Sprite(mat);
       sp.renderOrder = isSelected ? 995 : 990;
-      sp.scale.set(isSelected ? 14.5 : 10.5, isSelected ? 2.7 : 2.0, 1);
+      sp.scale.set(isSelected ? 15.2 : 11.0, isSelected ? 2.6 : 1.9, 1);
       return sp;
+    }
+
+    function selectAndRankPocs(candidates, n, currentPrice, minPriceSep) {
+      const targetN = Math.max(1, n);
+      const byVol = [...candidates].filter((e) => e.vol > 0).sort((a, b) => b.vol - a.vol);
+      const chosen = [];
+      for (const cand of byVol) {
+        if (chosen.length >= targetN) break;
+        if (chosen.every((c) => Math.abs(c.price - cand.price) >= minPriceSep)) {
+          chosen.push({ ...cand });
+        }
+      }
+      if (chosen.length < targetN) {
+        for (const cand of byVol) {
+          if (chosen.length >= targetN) break;
+          if (!chosen.some((c) => c.price === cand.price)) chosen.push({ ...cand });
+        }
+      }
+      chosen.forEach((c, idx) => { c.volRank = idx + 1; });
+      if (isFinite(currentPrice)) {
+        chosen.sort((a, b) => Math.abs(a.price - currentPrice) - Math.abs(b.price - currentPrice));
+      }
+      chosen.forEach((c, idx) => { c.level = idx + 1; });
+      return chosen;
     }
 
     function drawPriceBadgeCanvas(cv, priceText, trend) {
@@ -1079,7 +1104,6 @@
       pocX = 0; pocY = 0;
       for (let x = 0; x < timeBinsCount; x++) for (let y = 0; y < priceBinsCount; y++) if (displayGrid[x][y] > maxCellVol) { maxCellVol = displayGrid[x][y]; pocX = x; pocY = y; }
       maxCellVol = maxCellVol || 1;
-      pocPrice = minPrice + (pocY / (priceBinsCount - 1 || 1)) * priceRange;
       const priceLevels = [];
       for (let y = 0; y < priceBinsCount; y++) {
         let total = 0, maxX = 0, maxV = 0;
@@ -1087,13 +1111,17 @@
           total += displayGrid[x][y];
           if (displayGrid[x][y] > maxV) { maxV = displayGrid[x][y]; maxX = x; }
         }
-        priceLevels.push({ y, v: total, x: maxX });
+        priceLevels.push({
+          price: minPrice + (y / (priceBinsCount - 1 || 1)) * priceRange,
+          vol: total,
+          xIndex: maxX,
+          yIndex: y,
+        });
       }
-      pocs = priceLevels
-        .sort((a, b) => b.v - a.v)
-        .slice(0, Math.max(1, nPocs))
-        .filter((e) => e.v > 0)
-        .map((e, i) => ({ price: minPrice + (e.y / (priceBinsCount - 1 || 1)) * priceRange, yIndex: e.y, xIndex: e.x, vol: e.v, level: i + 1 }));
+      const curLiveP = (lastTick && isFinite(lastTick.price)) ? lastTick.price : (activeData.length ? activeData[activeData.length - 1].close : (minPrice + priceRange / 2));
+      const minSep = Math.max(getPriceBucketStep(), (priceRange / Math.max(12, priceBinsCount)) * 1.6);
+      pocs = selectAndRankPocs(priceLevels, nPocs, curLiveP, minSep);
+      pocPrice = pocs.length ? pocs[0].price : (minPrice + (pocY / (priceBinsCount - 1 || 1)) * priceRange);
       if (selectedPocIndex >= pocs.length) selectedPocIndex = 0;
       terrainState = { displayGrid, rawGrid: grid, maxCellVol };
       computeAnalytics();
@@ -1184,9 +1212,10 @@
           bucketBestIdx.set(k, idx);
         }
       });
-      const sortedPocs = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
-      pocPrice = sortedPocs.length ? sortedPocs[0][0] : slice[slice.length - 1].close;
-      pocs = sortedPocs.slice(0, Math.max(1, nPocs)).map(([price, vol], i) => ({ price, vol, level: i + 1, xIndex: bucketBestIdx.get(price) ?? 0, yIndex: 0 }));
+      const candidates = [...buckets.entries()].map(([price, vol]) => ({ price, vol, xIndex: bucketBestIdx.get(price) ?? 0, yIndex: 0 }));
+      const curTrailP = (lastTick && isFinite(lastTick.price)) ? lastTick.price : slice[slice.length - 1].close;
+      pocs = selectAndRankPocs(candidates, nPocs, curTrailP, getPriceBucketStep() * 1.5);
+      pocPrice = pocs.length ? pocs[0].price : curTrailP;
       if (selectedPocIndex >= pocs.length) selectedPocIndex = 0;
       computeAnalytics(slice);
 
@@ -1412,7 +1441,7 @@
           const z = zFromPrice(poc.price);
           const bar = trailState.slice[Math.min(trailState.slice.length - 1, Math.max(0, poc.xIndex))];
           const h = tiltYAt(z) + Math.max(0.3, (bar.volume / trailState.maxVol) * MAX_HEIGHT * zScaleFactor) + 0.6;
-          const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus);
+          const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus, idx === 0);
           banner.position.set(x, h + (isFocus ? 3.5 : 2.3), z);
           overlayGroup.add(banner);
         });
@@ -1450,7 +1479,7 @@
         placedBanners.push({ x: bx, y: by, z });
         const pinGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, h, z), new THREE.Vector3(bx, h + pinH, z)]);
         overlayGroup.add(new THREE.Line(pinGeo, new THREE.LineBasicMaterial({ color: glowCol, transparent: true, opacity: isFocus ? 0.85 : 0.45, depthWrite: false })));
-        const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus);
+        const banner = makePocCalloutSprite(idx + 1, fmtPrice(poc.price, dec), fmtCompactVol(poc.vol), isFocus, idx === 0);
         banner.position.set(bx, by, z);
         overlayGroup.add(banner);
       });
@@ -1503,14 +1532,31 @@
     }
 
     function renderReferenceLine() {
-      const price = refPrice ?? pocPrice;
-      if (!showPOC || price == null) return;
-      const z = zFromPrice(price);
-      const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
-        new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
-      ]);
-      overlayGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.5, depthWrite: false })));
+      if (!showPOC) return;
+      const dec = getPriceDecimals(scale.maxPrice);
+      const list = pocs.length ? pocs : (pocPrice != null ? [{ price: pocPrice, level: 1 }] : []);
+      list.forEach((poc, idx) => {
+        const isFocus = selectedPocIndex === -1 ? idx === 0 : selectedPocIndex === idx;
+        const z = zFromPrice(poc.price);
+        const colHex = isFocus ? 0xfbbf24 : 0x22d3ee;
+        const colStr = isFocus ? '#fbbf24' : '#38bdf8';
+        const geo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
+          new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(z) + 0.4, z),
+        ]);
+        overlayGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: colHex, transparent: true, opacity: isFocus ? 0.78 : 0.35, depthWrite: false })));
+        const lbl = makeTextSprite(`#${idx + 1} · ${fmtPrice(poc.price, dec)}`, colStr, 8.2, 1.5);
+        lbl.position.set(-PLANE_WIDTH / 2 - 4.4, tiltYAt(z) + 0.6, z);
+        overlayGroup.add(lbl);
+      });
+      if (refPrice != null) {
+        const z = zFromPrice(refPrice);
+        const geo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-PLANE_WIDTH / 2, tiltYAt(z) + 0.45, z),
+          new THREE.Vector3(PLANE_WIDTH / 2, tiltYAt(z) + 0.45, z),
+        ]);
+        overlayGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.65, depthWrite: false })));
+      }
     }
 
     function renderABCWaves() {
@@ -1914,27 +1960,40 @@
         }
         ctx.stroke();
       }
+      const last = bars[bars.length - 1];
       if (showPOC && bars.length) {
         const bucket = {};
         for (const b of bars) {
           const k = bucketPrice(b.close);
           bucket[k] = (bucket[k] || 0) + b.volume;
         }
-        const pipPocs = Object.entries(bucket).sort((a, b) => b[1] - a[1]).slice(0, Math.max(1, nPocs)).map(([p]) => Number(p));
-        for (const p of pipPocs) {
-          if (p < lo || p > hi) continue;
+        const candPocs = Object.entries(bucket).map(([p, vol]) => ({ price: Number(p), vol }));
+        const pipPocs = selectAndRankPocs(candPocs, nPocs, last.close, getPriceBucketStep() * 1.4);
+        const usedTagPos = [];
+        pipPocs.forEach((item, idx) => {
+          const p = item.price;
+          if (p < lo || p > hi) return;
           const y = py(p);
-          ctx.strokeStyle = '#ffd700';
-          ctx.lineWidth = 1;
+          const isPrimary = idx === 0;
+          ctx.strokeStyle = isPrimary ? '#fbbf24' : '#38bdf8';
+          ctx.lineWidth = isPrimary ? 1.4 : 1;
           ctx.setLineDash([3, 3]);
           ctx.beginPath();
           ctx.moveTo(padL, y);
           ctx.lineTo(W - padR, y);
           ctx.stroke();
           ctx.setLineDash([]);
-        }
+          let tx = padL + 2;
+          for (const prev of usedTagPos) {
+            if (Math.abs(y - prev.y) < 10 && Math.abs(tx - prev.x) < 18) tx += 18;
+          }
+          usedTagPos.push({ x: tx, y });
+          ctx.fillStyle = isPrimary ? 'rgba(251,191,36,0.95)' : 'rgba(56,189,248,0.85)';
+          ctx.font = '700 8.5px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(`#${idx + 1}`, tx, Math.max(padT + 9, y - 2));
+        });
       }
-      const last = bars[bars.length - 1];
       const dec = getPriceDecimals(hi);
       const ly = Math.max(padT + 8, Math.min(H - padB - 8, py(last.close)));
       const bullLast = last.close >= last.open;
@@ -2005,7 +2064,9 @@
       const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
       const pocLabel = selectedPocIndex === -1
         ? `Todas (${pocs.length}) @ ${fmtPrice(an.pocPrice, dec)}`
-        : `POC #${selectedPocIndex + 1} @ ${fmtPrice(an.pocPrice, dec)}`;
+        : (selectedPocIndex === 0
+          ? `POC #1 (Mais Próxima) @ ${fmtPrice(an.pocPrice, dec)}`
+          : `POC #${selectedPocIndex + 1} (${selectedPocIndex + 1}ª Próxima) @ ${fmtPrice(an.pocPrice, dec)}`);
       set('an-poc-target', an.pocPrice != null ? pocLabel : 'POC #1 @ —');
       set('an-poc-vol-badge', `Vol: ${fmtCompactVol(an.pocVol)}`);
       set('an-absorption', `${Math.round(an.absorption * 100)}%`);
@@ -2255,13 +2316,30 @@
     function updateLiveTickUI() {
       if (!lastTick || !isFinite(lastTick.price)) return;
       const p = lastTick.price;
-      const pc = getPrevClosePrice(activeData);
-      analytics.lastPrice = p;
-      analytics.prevClose = pc;
-      analytics.prevCloseDist = pc != null ? p - pc : 0;
-      analytics.prevClosePct = (pc != null && pc !== 0) ? (analytics.prevCloseDist / pc) * 100 : 0;
-      analytics.pocDistance = analytics.pocPrice != null ? p - analytics.pocPrice : 0;
-      analytics.pocDistancePct = (analytics.pocPrice != null && analytics.pocPrice !== 0) ? (analytics.pocDistance / analytics.pocPrice) * 100 : 0;
+      let orderChanged = false;
+      if (pocs.length > 1) {
+        const beforeFirst = pocs[0].price;
+        const beforeOrder = pocs.map((x) => x.price).join(',');
+        pocs.sort((a, b) => Math.abs(a.price - p) - Math.abs(b.price - p));
+        pocs.forEach((x, i) => { x.level = i + 1; });
+        const afterOrder = pocs.map((x) => x.price).join(',');
+        if (beforeOrder !== afterOrder) {
+          orderChanged = true;
+          pocPrice = pocs[0].price;
+          computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
+          renderPocSelectorPills();
+          renderOverlay();
+        }
+      }
+      if (!orderChanged) {
+        const pc = getPrevClosePrice(activeData);
+        analytics.lastPrice = p;
+        analytics.prevClose = pc;
+        analytics.prevCloseDist = pc != null ? p - pc : 0;
+        analytics.prevClosePct = (pc != null && pc !== 0) ? (analytics.prevCloseDist / pc) * 100 : 0;
+        analytics.pocDistance = analytics.pocPrice != null ? p - analytics.pocPrice : 0;
+        analytics.pocDistancePct = (analytics.pocPrice != null && analytics.pocPrice !== 0) ? (analytics.pocDistance / analytics.pocPrice) * 100 : 0;
+      }
       updateAbsorptionUI();
       if (priceMarker) {
         const m = todMin(lastTick.time);
