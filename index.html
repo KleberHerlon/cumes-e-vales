@@ -39,6 +39,7 @@
     .fib-level { padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #64748b; font-size: 10px; cursor: pointer; transition: all .15s ease; }
     .fib-level:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
     .fib-level.cv-active-chip { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
+    select option { background: #0f172a; color: #e2e8f0; }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
@@ -154,13 +155,18 @@
         <div class="flex gap-1.5 items-end">
           <label class="flex-1 block">
             <span class="text-slate-500 text-[9px] uppercase tracking-wider">Ativo (B3 / Forex)</span>
-            <input id="asset-symbol" list="asset-list" value="WIN" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] font-semibold focus:outline-none focus:border-indigo-500">
-            <datalist id="asset-list">
-              <option value="WIN"></option><option value="WDO"></option><option value="IBOV"></option>
-              <option value="PETR4"></option><option value="VALE3"></option><option value="ITUB4"></option>
-              <option value="BBDC4"></option><option value="EURUSD"></option><option value="GBPUSD"></option>
-              <option value="USDJPY"></option>
-            </datalist>
+            <select id="asset-symbol" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-100 text-[11px] font-semibold focus:outline-none focus:border-indigo-500">
+              <option value="WIN">WIN · Mini Índice</option>
+              <option value="WDO">WDO · Mini Dólar</option>
+              <option value="IBOV">IBOV · Índice Bovespa</option>
+              <option value="PETR4">PETR4 · Petrobras</option>
+              <option value="VALE3">VALE3 · Vale</option>
+              <option value="ITUB4">ITUB4 · Itaú</option>
+              <option value="BBDC4">BBDC4 · Bradesco</option>
+              <option value="EURUSD">EURUSD · Euro/Dólar</option>
+              <option value="GBPUSD">GBPUSD · Libra/Dólar</option>
+              <option value="USDJPY">USDJPY · Dólar/Iene</option>
+            </select>
           </label>
           <label class="w-16 block">
             <span class="text-slate-500 text-[9px] uppercase tracking-wider">Nº POCs</span>
@@ -181,28 +187,6 @@
               <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Até</span><input id="f-date-to" type="date" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
             </div>
             <button id="btn-clear-dates" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-xmark text-indigo-400"></i> Limpar datas</button>
-          </div>
-        </details>
-
-        <details class="cv-acc" open>
-          <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-filter text-indigo-400"></i> Filtros</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
-          <div class="cv-acc-body">
-            <div class="grid grid-cols-2 gap-1.5">
-              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Hora início</span><input id="f-start" type="time" value="09:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Hora fim</span><input id="f-end" type="time" value="18:00" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-            </div>
-            <div class="grid grid-cols-2 gap-1.5">
-              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Preço mín</span><input id="f-pmin" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-              <label class="block"><span class="text-slate-500 text-[9px] uppercase tracking-wider">Preço máx</span><input id="f-pmax" type="number" placeholder="auto" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500"></label>
-            </div>
-            <select id="vol-filter" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500">
-              <option value="all">Todos os volumes</option>
-              <option value="low">Baixo (0–30%)</option>
-              <option value="medium">Médio (30–60%)</option>
-              <option value="high">Alto (60%+)</option>
-              <option value="aboveavg">Acima da média</option>
-            </select>
-            <button id="btn-filters" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-filter text-indigo-400"></i> Aplicar Filtros</button>
           </div>
         </details>
 
@@ -780,6 +764,9 @@
       for (let i = 0; i < xLabels.length; i += xStep) { const s = makeTextSprite(xLabels[i], '#f43f5e'); s.position.set(((i / (xLabels.length - 1 || 1)) - 0.5) * PLANE_WIDTH, 0.5, PLANE_DEPTH / 2 + 3.5); sceneGroup.add(s); }
       const yStep = Math.max(1, Math.floor(yLabels.length / 6));
       for (let j = 0; j < yLabels.length; j += yStep) { const s = makeTextSprite(yLabels[j], '#34d399'); s.position.set(PLANE_WIDTH / 2 + 4.8, 0.5, (0.5 - (j / (yLabels.length - 1 || 1))) * PLANE_DEPTH); sceneGroup.add(s); }
+      const symLbl = makeTextSprite(`${symbol} · ${viewMode === 'trail' ? 'Trilha Linear' : 'Topográfico'}`, '#f8fafc', 13, 2.8);
+      symLbl.position.set(0, tiltMax() + MAX_HEIGHT * zScaleFactor + 6, -PLANE_DEPTH / 2 - 2.5);
+      sceneGroup.add(symLbl);
     }
 
     function buildGradientGeometry(items) {
@@ -1215,13 +1202,11 @@
       const price = refPrice ?? pocPrice;
       if (!showPOC || price == null) return;
       const z = worldZ(price);
-      const h = tiltMax() + MAX_HEIGHT * zScaleFactor + 4;
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE_WIDTH, h), new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
-      plane.position.set(0, h / 2, z);
-      overlayGroup.add(plane);
-      const lbl = makeTextSprite(String(Math.round(price)), '#22d3ee', 7, 1.6);
-      lbl.position.set(PLANE_WIDTH / 2 + 2.5, 0.6, z);
-      overlayGroup.add(lbl);
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-PLANE_WIDTH / 2, 0.4, z),
+        new THREE.Vector3(PLANE_WIDTH / 2, 0.4, z),
+      ]);
+      overlayGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.5, depthWrite: false })));
     }
 
     function renderOverlay() {
@@ -1357,6 +1342,42 @@
         const top = Math.min(yO, yC), bot = Math.max(yO, yC);
         ctx.fillStyle = col;
         ctx.fillRect(x - cw * 0.32, top, cw * 0.64, Math.max(1, bot - top));
+      }
+      if (showMA && maPeriod > 1 && bars.length > maPeriod) {
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        let sum = 0;
+        for (let i = 0; i < bars.length; i++) {
+          sum += bars[i].close;
+          if (i >= maPeriod) sum -= bars[i - maPeriod].close;
+          if (i >= maPeriod - 1) {
+            const x = padL + i * cw + cw / 2;
+            const y = py(sum / maPeriod);
+            if (i === maPeriod - 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      }
+      if (showPOC && bars.length) {
+        const bucket = {};
+        for (const b of bars) {
+          const k = Math.round(b.close / 50) * 50;
+          bucket[k] = (bucket[k] || 0) + b.volume;
+        }
+        const pipPocs = Object.entries(bucket).sort((a, b) => b[1] - a[1]).slice(0, Math.max(1, nPocs)).map(([p]) => Number(p));
+        for (const p of pipPocs) {
+          if (p < lo || p > hi) continue;
+          const y = py(p);
+          ctx.strokeStyle = '#ffd700';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(W - padR, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
       const last = bars[bars.length - 1];
       const ly = py(last.close);
@@ -1543,13 +1564,18 @@
       const base = document.getElementById('ws-url').value.trim() || 'ws://localhost:8000/ws';
       const url = base.includes('?') ? base + '&symbol=' + encodeURIComponent(symbol) : base + '?symbol=' + encodeURIComponent(symbol);
       if (ws) { ws.close(); ws = null; }
-      try { ws = new WebSocket(url); } catch { setWsStatus('off', 'WebSocket inválido'); showToast('WebSocket inválido.', true); return; }
+      try { ws = new WebSocket(url); } catch { setWsStatus('off', 'WebSocket inválido'); return; }
       setWsStatus('connecting', 'Conectando…');
       document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
       document.getElementById('badge-text').textContent = `WS conectando…`;
       setBadge('live');
-      ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${url}`; showToast('WebSocket conectado.'); };
-      ws.onclose = () => { setWsStatus('off', 'Desconectado'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; document.getElementById('badge-text').textContent = 'WS desconectado'; };
+      ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${symbol}`; };
+      ws.onclose = () => {
+        setWsStatus('off', 'Reconectando…');
+        document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500';
+        document.getElementById('badge-text').textContent = 'WS reconectando';
+        if (autoReconnect) setTimeout(() => { if (autoReconnect && !ws) connectWS(); }, 4000);
+      };
       ws.onerror = () => { setWsStatus('off', 'Erro de conexão'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
       ws.onmessage = (ev) => { try { handleLiveMessage(JSON.parse(ev.data)); } catch { /* ignore */ } };
     }
@@ -1574,8 +1600,6 @@
       document.getElementById('period-day').addEventListener('click', () => { period = 'day'; clearDateFilter(); stylePeriod('period-day'); updateVisualization(); });
       document.getElementById('period-week').addEventListener('click', () => { period = 'week'; clearDateFilter(); stylePeriod('period-week'); updateVisualization(); });
       document.getElementById('period-month').addEventListener('click', () => { period = 'month'; clearDateFilter(); stylePeriod('period-month'); updateVisualization(); });
-      document.getElementById('btn-filters').addEventListener('click', applyFilters);
-      document.getElementById('vol-filter').addEventListener('change', (e) => { volumeFilter = e.target.value; updateVisualization(); });
       document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
       document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
@@ -1667,19 +1691,6 @@
       document.querySelectorAll('.fib-level').forEach((b) => {
         b.classList.toggle('cv-active-chip', fibLevels.has(b.dataset.level));
       });
-    }
-
-    function applyFilters() {
-      const s = document.getElementById('f-start').value;
-      const e = document.getElementById('f-end').value;
-      if (s) { const [h, m] = s.split(':').map(Number); filterStart = h * 60 + m; }
-      if (e) { const [h, m] = e.split(':').map(Number); filterEnd = h * 60 + m; }
-      const pmin = document.getElementById('f-pmin').value.trim();
-      const pmax = document.getElementById('f-pmax').value.trim();
-      priceMin = pmin === '' ? null : Number(pmin);
-      priceMax = pmax === '' ? null : Number(pmax);
-      updateVisualization();
-      showToast('Filtros aplicados.');
     }
 
     function startLiquiditySim() {
