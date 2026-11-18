@@ -2869,7 +2869,7 @@
       const cw = container.clientWidth || window.innerWidth;
       const ch = container.clientHeight || window.innerHeight;
       document.querySelectorAll('.cv-floating-card').forEach((card) => {
-        if (card.style.left && card.style.left !== 'auto') {
+        if (card.style.left && card.style.left !== 'auto' && card.style.top && card.style.top !== 'auto') {
           const left = parseFloat(card.style.left);
           const top = parseFloat(card.style.top);
           if (isFinite(left) && isFinite(top)) {
@@ -2917,7 +2917,7 @@
         document.querySelectorAll('.cv-floating-card').forEach((card) => {
           const cfg = data[card.dataset.cardId];
           if (!cfg) return;
-          if (cfg.left && cfg.left !== 'auto') {
+          if (cfg.left && cfg.left !== 'auto' && cfg.top && cfg.top !== 'auto') {
             card.style.left = cfg.left;
             card.style.top = cfg.top;
             card.style.right = 'auto';
