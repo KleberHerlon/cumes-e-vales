@@ -389,6 +389,7 @@
     let ws = null;
     let lastTick = null;
     let liveDelta = { buy: 0, sell: 0, net: 0 };
+    let sampleLoaded = false;
     let liveFeed = null;
 
     let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
@@ -1582,6 +1583,23 @@
       else { dot.className = 'w-2 h-2 rounded-full bg-rose-500'; label.textContent = text; label.className = 'text-rose-400'; }
     }
 
+    async function loadSampleData() {
+      try {
+        const r1 = await fetch('amostra_win_m1.csv', { cache: 'no-cache' });
+        if (r1.ok) parseCSV(await r1.text());
+        const r2 = await fetch('amostra_trades.csv', { cache: 'no-cache' });
+        if (r2.ok) parseCSV(await r2.text());
+        if (rawMarketData.length) {
+          sampleLoaded = true;
+          document.getElementById('badge-text').textContent = `Dados de exemplo · ${symbol}`;
+          setBadge('csv');
+          updateVisualization();
+        }
+      } catch (e) {
+        console.warn('sem dados de exemplo:', e);
+      }
+    }
+
     function connectWS() {
       const base = document.getElementById('ws-url').value.trim() || 'ws://localhost:8000/ws';
       const url = base.includes('?') ? base + '&symbol=' + encodeURIComponent(symbol) : base + '?symbol=' + encodeURIComponent(symbol);
@@ -1593,9 +1611,9 @@
       setBadge('live');
       ws.onopen = () => { setWsStatus('on', 'Ao vivo'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400'; document.getElementById('badge-text').textContent = `WS ${symbol}`; };
       ws.onclose = () => {
-        setWsStatus('off', 'Reconectando…');
+        setWsStatus('off', sampleLoaded ? 'Offline (dados de exemplo)' : 'Reconectando…');
         document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500';
-        document.getElementById('badge-text').textContent = 'WS reconectando';
+        document.getElementById('badge-text').textContent = sampleLoaded ? `Dados de exemplo · ${symbol}` : 'WS reconectando';
         if (autoReconnect) setTimeout(() => { if (autoReconnect && !ws) connectWS(); }, 4000);
       };
       ws.onerror = () => { setWsStatus('off', 'Erro de conexão'); document.getElementById('ws-dot').className = 'w-1.5 h-1.5 rounded-full bg-rose-500'; };
@@ -1774,7 +1792,7 @@
     rawMarketData = [];
     wireEvents();
     updateVisualization();
-    connectWS();
+    loadSampleData().then(() => { connectWS(); });
     animate();
   </script>
 </body>
