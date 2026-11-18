@@ -233,8 +233,8 @@
         </div>
       </div>
 
-      <div id="pip-wrap" data-card-id="pip" data-resize="wh" style="bottom:12px; right:12px; width:376px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 flex flex-col">
-        <div class="cv-drag-handle flex items-center justify-between gap-2 mb-1 pb-1 border-b border-slate-800/70">
+      <div id="pip-wrap" data-card-id="pip" data-resize="wh" style="bottom:12px; right:12px; width:456px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 flex flex-col">
+        <div class="cv-drag-handle flex flex-wrap items-center justify-between gap-1.5 mb-1 pb-1 border-b border-slate-800/70">
           <div class="text-[10px] text-slate-300 font-semibold flex items-center gap-1.5 truncate">
             <i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i>
             <i class="fa-solid fa-chart-line text-emerald-400"></i>
@@ -242,6 +242,11 @@
             <span id="pip-live-price" class="font-mono text-sky-300 font-bold">—</span>
           </div>
           <div class="flex items-center gap-1 shrink-0">
+            <div class="flex items-center gap-0.5 bg-dark-950/90 p-0.5 rounded-lg border border-amber-500/30">
+              <button id="btn-pip-fib" type="button" title="Expansão Fibonacci de 3 cliques (P1: Início A → P2: Fim A → P3: Fim B)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1"><i class="fa-solid fa-ruler-combined"></i><span>Fibo 3P</span></button>
+              <button id="btn-pip-fib-auto" type="button" title="Ancorar automaticamente P1→P2→P3 nos pivôs recentes e projetar Confluência 3D" class="px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition">Auto</button>
+              <button id="btn-pip-fib-clear" type="button" title="Limpar Fibonacci" class="hidden px-1.5 py-0.5 rounded text-[9px] font-bold text-rose-300 hover:bg-rose-500/20 transition">×</button>
+            </div>
             <div id="pip-tf-bar" class="flex items-center gap-0.5 bg-dark-950/90 p-0.5 rounded-lg border border-slate-800">
               <button data-pip-tf="M1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white transition">M1</button>
               <button data-pip-tf="M5" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">M5</button>
@@ -412,18 +417,13 @@
           </div>
         </details>
 
-        <details class="cv-acc">
+        <details id="acc-fib" class="cv-acc">
           <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-ruler-combined text-amber-400"></i> Geometria &amp; Fibonacci</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
             <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-              <button id="fib-retrace" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Retração</button>
-              <button id="fib-extension" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Expansão</button>
-              <button id="fib-golden" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Φ Áurea</button>
-            </div>
-            <div class="grid grid-cols-3 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-              <button id="fib-axis-volume" class="py-1.5 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition">Volume (Z)</button>
-              <button id="fib-axis-price" class="py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition">Preço (Y)</button>
-              <button id="fib-axis-time" class="py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition">Tempo (X)</button>
+              <button id="fib-extension" type="button" title="3 cliques no Mini-Gráfico: P1 (Início A) → P2 (Fim A) → P3 (Fim B)" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Expansão 3P</button>
+              <button id="fib-retrace" type="button" title="2 cliques no Mini-Gráfico: P1 → P2 (Retração)" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Retração 2P</button>
+              <button id="fib-golden" type="button" title="Ancora automaticamente P1 → P2 → P3 no swing recente do Mini-Gráfico" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Auto ABC</button>
             </div>
             <div class="flex flex-wrap gap-1">
               <button class="fib-level cv-active-chip" data-level="0.382">38.2%</button>
@@ -434,11 +434,19 @@
               <button class="fib-level" data-level="1.618">161.8%</button>
             </div>
             <div class="space-y-1.5">
-              <div class="flex justify-between text-slate-300"><span>Opacidade</span><span id="val-fib-opacity" class="font-mono text-amber-400 font-semibold">40%</span></div>
+              <div class="flex justify-between text-slate-300"><span>Opacidade 3D</span><span id="val-fib-opacity" class="font-mono text-amber-400 font-semibold">40%</span></div>
               <input type="range" id="fib-opacity" min="0.05" max="0.9" step="0.05" value="0.4" class="w-full accent-amber-500 cursor-pointer">
             </div>
-            <button id="fib-clear" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-eraser text-amber-400"></i> Limpar Fibonacci</button>
-            <p class="text-[10px] text-slate-500 leading-relaxed">Clique em <b class="text-slate-400">2 pontos</b> na malha (ex: base de um vale e topo de um cume) para ancorar os níveis.</p>
+            <div id="fib-vol-diagnosis" class="bg-dark-950/90 border border-slate-800 rounded-lg p-2 space-y-1.5 text-[10px]">
+              <div class="flex items-center justify-between text-slate-400 border-b border-slate-800/80 pb-1 gap-1">
+                <span class="font-semibold text-amber-300">Confluência Fibo × Vol 3D</span>
+                <span id="fib-diag-leg" class="font-mono text-slate-400 truncate">3 pts no Mini-Gráfico</span>
+              </div>
+              <div id="fib-diag-rows" class="space-y-1 text-slate-400">
+                <div class="text-[9.5px] text-slate-500 leading-relaxed">Use <b>Fibo 3P</b> ou <b>Auto</b> no Mini-Gráfico (<b>P1</b>=Início A, <b>P2</b>=Fim A, <b>P3</b>=Fim B) para projetar a Perna C e cruzar cada alvo com os <b>Cumes</b> (defesa/POC) e <b>Vales</b> (vácuo livre) do Volume 3D.</div>
+              </div>
+            </div>
+            <button id="fib-clear" type="button" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-eraser text-amber-400"></i> Limpar Fibonacci</button>
           </div>
         </details>
 
@@ -540,8 +548,11 @@
     let fibTool = 'none';
     let fibAxis = 'volume';
     let fibAnchors = [];
-    let fibLevels = new Set(['0.382', '0.5', '0.618', '1.0']);
+    let fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
     let fibOpacity = 0.4;
+    let pipFibPoints = [];
+    let pipFibHover = null;
+    let lastPipLayout = null;
 
     let rawMarketData = [];
     let dailyMarketData = [];
@@ -1602,12 +1613,180 @@
       return a.minuteOfDay ?? timeFromX(a.x);
     }
 
+    function sampleVolumeConfluenceAtPrice(price) {
+      if (!isFinite(price)) return { nv: 0, pct: 0, badge: '● NEUTRO', desc: 'Sem referência', color: '#94a3b8', hex: 0x94a3b8 };
+      const pMin = (viewMode === 'trail' && trailState) ? trailState.minPrice : scale.minPrice;
+      const pMax = (viewMode === 'trail' && trailState) ? trailState.maxPrice : scale.maxPrice;
+      const pRange = (pMax - pMin) || 1;
+      if (price < pMin || price > pMax) {
+        return { nv: 0, pct: 0, badge: '⚡ VALE', desc: 'Vácuo (Fora da Área)', color: '#34d399', hex: 0x34d399 };
+      }
+      let nv = 0;
+      if (terrainState && terrainState.displayGrid && terrainState.displayGrid.length) {
+        const rowTotals = Array(priceBinsCount).fill(0);
+        let maxRow = 0;
+        for (let y = 0; y < priceBinsCount; y++) {
+          let sum = 0;
+          for (let x = 0; x < timeBinsCount; x++) sum += terrainState.displayGrid[x][y];
+          rowTotals[y] = sum;
+          if (sum > maxRow) maxRow = sum;
+        }
+        if (maxRow > 0) {
+          const fy = ((price - pMin) / pRange) * (priceBinsCount - 1);
+          const y0 = Math.max(0, Math.min(priceBinsCount - 1, Math.floor(fy)));
+          const y1 = Math.max(0, Math.min(priceBinsCount - 1, y0 + 1));
+          const frac = fy - y0;
+          const interp = rowTotals[y0] * (1 - frac) + rowTotals[y1] * frac;
+          nv = Math.max(0, Math.min(1, interp / maxRow));
+        }
+      } else if (activeData.length) {
+        const band = getPriceBucketStep();
+        let nearVol = 0;
+        for (const b of activeData) {
+          if (Math.abs(b.close - price) <= band) nearVol += b.volume;
+        }
+        const refVol = (pocs.length && pocs[0].vol > 0) ? pocs[0].vol : (trailState ? trailState.maxVol : 1);
+        nv = refVol > 0 ? Math.max(0, Math.min(1, nearVol / refVol)) : 0;
+      }
+      const pct = Math.round(nv * 100);
+      if (nv >= 0.58) return { nv, pct, badge: '★ CUME/POC', desc: 'Defesa / Alvo Forte', color: '#fbbf24', hex: 0xfbbf24 };
+      if (nv <= 0.28) return { nv, pct, badge: '⚡ VALE', desc: 'Vácuo (Corre Livre)', color: '#34d399', hex: 0x34d399 };
+      return { nv, pct, badge: '● ZONA MÉDIA', desc: 'Liquidez Moderada', color: '#38bdf8', hex: 0x38bdf8 };
+    }
+
+    function computeActiveFibTargets(previewPt = null) {
+      const req = fibTool === 'retrace' ? 2 : 3;
+      const pts = (previewPt && fibTool !== 'none' && pipFibPoints.length < req)
+        ? [...pipFibPoints, previewPt]
+        : [...pipFibPoints];
+      if (pts.length < 2) return { pts, levels: [], retracePct: null, mode: fibTool };
+      const p1 = pts[0], p2 = pts[1], p3 = pts[2] || null;
+      const legA = p2.price - p1.price;
+      const isRetrace = fibTool === 'retrace' || !p3;
+      const retracePct = p3 && Math.abs(legA) > 1e-9 ? Math.abs((p3.price - p2.price) / legA) * 100 : null;
+      const levels = [];
+      for (const lv of FIB_LEVELS) {
+        if (!fibLevels.has(lv.key)) continue;
+        const targetPrice = isRetrace ? (p2.price - lv.value * legA) : (p3.price + lv.value * legA);
+        levels.push({ ...lv, price: targetPrice, conf: sampleVolumeConfluenceAtPrice(targetPrice) });
+      }
+      return { pts, levels, retracePct, mode: isRetrace ? 'retrace' : 'extension' };
+    }
+
+    function updateFibDiagnosisUI() {
+      const legEl = document.getElementById('fib-diag-leg');
+      const rowsEl = document.getElementById('fib-diag-rows');
+      if (!legEl || !rowsEl) return;
+      const dec = getPriceDecimals(scale.maxPrice);
+      const data = computeActiveFibTargets();
+      if (data.pts.length < 2) {
+        legEl.textContent = pipFibPoints.length === 1 ? 'P1 definido · Clique P2' : '3 pts no Mini-Gráfico';
+        rowsEl.innerHTML = '<div class="text-[9.5px] text-slate-500 leading-relaxed">Use <b>Fibo 3P</b> ou <b>Auto</b> no Mini-Gráfico (<b>P1</b>=Início A, <b>P2</b>=Fim A, <b>P3</b>=Fim B) para projetar a Perna C e cruzar cada alvo com os <b>Cumes</b> (defesa/POC) e <b>Vales</b> (vácuo livre) do Volume 3D.</div>';
+        return;
+      }
+      const p1 = data.pts[0], p2 = data.pts[1], p3 = data.pts[2];
+      legEl.textContent = p3
+        ? `A:${fmtPrice(p1.price, dec)}→${fmtPrice(p2.price, dec)} · B:${fmtPrice(p3.price, dec)} (${data.retracePct != null ? data.retracePct.toFixed(0) + '%' : ''})`
+        : `${fmtPrice(p1.price, dec)} → ${fmtPrice(p2.price, dec)}`;
+      if (!data.levels.length) {
+        rowsEl.innerHTML = '<div class="text-[9.5px] text-slate-500">Selecione ao menos um nível (%) acima.</div>';
+        return;
+      }
+      rowsEl.innerHTML = data.levels.map((lv) => {
+        const cls = lv.conf.nv >= 0.58 ? 'text-amber-300' : lv.conf.nv <= 0.28 ? 'text-emerald-400' : 'text-sky-300';
+        return `<div class="flex items-center justify-between gap-1 bg-slate-900/80 border border-slate-800/80 rounded px-1.5 py-0.5 text-[9.5px]">
+          <span class="font-mono font-bold text-slate-200">${lv.label} · ${fmtPrice(lv.price, dec)}</span>
+          <span class="font-mono font-semibold ${cls} shrink-0">${lv.conf.badge} (${lv.conf.pct}%)</span>
+        </div>`;
+      }).join('');
+    }
+
+    function autoAnchorPipFib() {
+      const bars = getPipBars();
+      if (bars.length < 10) {
+        showToast('Aguardando mais candles no Mini-Gráfico para Auto ABC.', true);
+        return;
+      }
+      const scanEnd = Math.max(4, Math.floor(bars.length * 0.82));
+      let idxLow = 0, idxHigh = 0;
+      for (let i = 1; i < scanEnd; i++) {
+        if (bars[i].low < bars[idxLow].low) idxLow = i;
+        if (bars[i].high > bars[idxHigh].high) idxHigh = i;
+      }
+      let p1Bar, p1Price, p2Bar, p2Price, idxB;
+      if (idxLow < idxHigh) {
+        p1Bar = bars[idxLow]; p1Price = p1Bar.low;
+        p2Bar = bars[idxHigh]; p2Price = p2Bar.high;
+        idxB = idxHigh + 1;
+        for (let i = idxHigh + 2; i < bars.length; i++) {
+          if (bars[i].low < bars[idxB].low) idxB = i;
+        }
+        const p3Bar = bars[Math.min(bars.length - 1, idxB)];
+        pipFibPoints = [
+          { time: p1Bar.time, price: p1Price, minuteOfDay: p1Bar.minuteOfDay },
+          { time: p2Bar.time, price: p2Price, minuteOfDay: p2Bar.minuteOfDay },
+          { time: p3Bar.time, price: p3Bar.low, minuteOfDay: p3Bar.minuteOfDay },
+        ];
+      } else {
+        p1Bar = bars[idxHigh]; p1Price = p1Bar.high;
+        p2Bar = bars[idxLow]; p2Price = p2Bar.low;
+        idxB = idxLow + 1;
+        for (let i = idxLow + 2; i < bars.length; i++) {
+          if (bars[i].high > bars[idxB].high) idxB = i;
+        }
+        const p3Bar = bars[Math.min(bars.length - 1, idxB)];
+        pipFibPoints = [
+          { time: p1Bar.time, price: p1Price, minuteOfDay: p1Bar.minuteOfDay },
+          { time: p2Bar.time, price: p2Price, minuteOfDay: p2Bar.minuteOfDay },
+          { time: p3Bar.time, price: p3Bar.high, minuteOfDay: p3Bar.minuteOfDay },
+        ];
+      }
+      fibTool = 'extension';
+      if (!fibLevels.size) fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
+      pipFibHover = null;
+      const acc = document.getElementById('acc-fib');
+      if (acc) acc.open = true;
+      syncFibUI();
+      updateFibDiagnosisUI();
+      renderPiP();
+      renderOverlay();
+      showToast('Fibo 3P ancorado (P1 → P2 → P3) com Confluência de Volume 3D.');
+    }
+
     function renderFibonacci() {
-      if (fibTool === 'none') return;
-      for (const a of fibAnchors) {
-        const mk = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
-        mk.position.set(a.x, a.y, a.z);
-        overlayGroup.add(mk);
+      const dec = getPriceDecimals(scale.maxPrice);
+      if (pipFibPoints.length >= 2) {
+        const fibData = computeActiveFibTargets();
+        const pMin = (viewMode === 'trail' && trailState) ? trailState.minPrice : scale.minPrice;
+        const pMax = (viewMode === 'trail' && trailState) ? trailState.maxPrice : scale.maxPrice;
+        const margin = ((pMax - pMin) || 1) * 0.04;
+        const h = tiltMax() + MAX_HEIGHT * zScaleFactor + 1.5;
+        fibData.levels.forEach((lv, idx) => {
+          if (lv.price < pMin - margin || lv.price > pMax + margin) return;
+          const clampedP = Math.max(pMin, Math.min(pMax, lv.price));
+          const z = zFromPrice(clampedP);
+          const colHex = lv.conf.hex;
+          const colStr = lv.conf.color;
+          const strip = new THREE.Mesh(
+            new THREE.PlaneGeometry(PLANE_WIDTH, 0.75).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ color: colHex, transparent: true, opacity: fibOpacity * 0.5, side: THREE.DoubleSide, depthWrite: false })
+          );
+          strip.position.set(0, tiltYAt(z) + 0.12, z);
+          overlayGroup.add(strip);
+          const pts = [];
+          const segs = 32;
+          for (let s = 0; s <= segs; s++) {
+            const x = ((s / segs) - 0.5) * PLANE_WIDTH;
+            const yBase = tiltYAt(z) + (viewMode === 'trail' ? 0.5 : sampleHeight(x, z) + 0.55);
+            pts.push(new THREE.Vector3(x, yBase, z));
+          }
+          const cGeo = new THREE.BufferGeometry().setFromPoints(pts);
+          overlayGroup.add(new THREE.Line(cGeo, new THREE.LineBasicMaterial({ color: colHex, transparent: true, opacity: Math.max(0.65, fibOpacity), depthWrite: false })));
+          const onRight = (idx % 2 === 1);
+          const lbl = makeTextSprite(`C ${lv.label}: ${fmtPrice(lv.price, dec)} · ${lv.conf.badge} (${lv.conf.pct}%)`, colStr, 14.5, 2.1);
+          lbl.position.set(onRight ? (PLANE_WIDTH / 2 + 5.8) : (-PLANE_WIDTH / 2 - 5.8), tiltYAt(z) + 1.4 + Math.min(h * 0.12, (idx % 3) * 1.1), z);
+          overlayGroup.add(lbl);
+        });
       }
       if (fibAnchors.length < 2) return;
       const [A, B] = fibAnchors;
@@ -2192,9 +2371,23 @@
       if (bars.length < 2) return;
       let lo = Infinity, hi = -Infinity;
       for (const b of bars) { if (b.low < lo) lo = b.low; if (b.high > hi) hi = b.high; }
+      const origRange = (hi - lo) || 1;
+      const fibData = computeActiveFibTargets(pipFibHover);
+      if (fibData.pts.length >= 1) {
+        let expLo = lo, expHi = hi;
+        for (const p of fibData.pts) { if (p.price < expLo) expLo = p.price; if (p.price > expHi) expHi = p.price; }
+        for (const lv of fibData.levels) { if (lv.price < expLo) expLo = lv.price; if (lv.price > expHi) expHi = lv.price; }
+        if ((expHi - expLo) <= origRange * 6) {
+          const pad = (expHi - expLo) * 0.04;
+          lo = expLo - pad;
+          hi = expHi + pad;
+        }
+      }
       const range = (hi - lo) || 1;
       const padT = 8, padB = 16, padR = 56, padL = 6;
       const cw = (W - padL - padR) / bars.length;
+      const tfSec = pipTimeframe === 'D1' ? 86400 : ({ M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600 }[pipTimeframe] || 60);
+      lastPipLayout = { bars, lo, hi, range, padT, padB, padL, padR, cw, W, H, tfSec };
       const py = (p) => padT + (hi - p) / range * (H - padT - padB);
       for (let i = 0; i < bars.length; i++) {
         const b = bars[i];
@@ -2343,6 +2536,119 @@
       }
 
       const dec = getPriceDecimals(hi);
+      if (fibTool !== 'none' || pipFibPoints.length > 0) {
+        const findFibX = (pt) => {
+          if (!pt || pt.time == null) return padL + cw / 2;
+          if (pipTimeframe === 'D1') {
+            const k = localDateKey(pt.time);
+            const i = bars.findIndex((b) => localDateKey(b.time) === k);
+            if (i !== -1) return padL + i * cw + cw / 2;
+          }
+          if (pt.time <= bars[0].time) return padL + cw / 2;
+          let found = 0;
+          for (let i = 0; i < bars.length; i++) {
+            if (bars[i].time <= pt.time) found = i;
+            else break;
+          }
+          return Math.max(padL + 2, Math.min(W - padR - 2, padL + found * cw + cw / 2));
+        };
+        const fPts = fibData.pts.map((pt, idx) => ({
+          idx,
+          x: findFibX(pt),
+          y: Math.max(padT + 4, Math.min(H - padB - 4, py(pt.price))),
+          price: pt.price,
+        }));
+        if (fPts.length >= 2) {
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(fPts[0].x, fPts[0].y);
+          ctx.lineTo(fPts[1].x, fPts[1].y);
+          ctx.stroke();
+          if (fPts.length >= 3) {
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.4;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(fPts[1].x, fPts[1].y);
+            ctx.lineTo(fPts[2].x, fPts[2].y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            const cLv = fibData.levels.find((l) => l.key === '1.0') || fibData.levels[0];
+            if (cLv) {
+              const cX = Math.min(W - padR - 6, Math.max(fPts[2].x + 18, fPts[2].x + Math.abs(fPts[1].x - fPts[0].x)));
+              const cY = Math.max(padT + 6, Math.min(H - padB - 6, py(cLv.price)));
+              ctx.strokeStyle = '#34d399';
+              ctx.lineWidth = 1.3;
+              ctx.setLineDash([3, 3]);
+              ctx.beginPath();
+              ctx.moveTo(fPts[2].x, fPts[2].y);
+              ctx.lineTo(cX, cY);
+              ctx.stroke();
+              ctx.setLineDash([]);
+            }
+          }
+          const xStart = fPts.length >= 3 ? fPts[2].x : fPts[0].x;
+          fibData.levels.forEach((lv) => {
+            const yL = py(lv.price);
+            if (yL < padT - 4 || yL > H - padB + 4) return;
+            const col = hexStr(lv.color);
+            ctx.strokeStyle = col;
+            ctx.lineWidth = lv.key === '1.0' || lv.key === '1.618' ? 1.4 : 1;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(xStart, yL);
+            ctx.lineTo(W - padR, yL);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            const badgeText = `${lv.label} ${fmtPrice(lv.price, dec)} ${lv.conf.badge}`;
+            ctx.font = '700 8px monospace';
+            const tw = ctx.measureText(badgeText).width + 8;
+            const bx = Math.max(padL + 2, W - padR - tw - 2);
+            const by = Math.max(padT + 2, Math.min(H - padB - 12, yL - 11));
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+            ctx.fillRect(bx, by, tw, 11);
+            ctx.fillStyle = lv.conf.color;
+            ctx.textAlign = 'left';
+            ctx.fillText(badgeText, bx + 4, by + 8.5);
+          });
+        }
+        fPts.forEach((fp, idx) => {
+          const cols = ['#fbbf24', '#f97316', '#38bdf8'];
+          const pCol = cols[idx] || '#ffffff';
+          ctx.fillStyle = pCol;
+          ctx.strokeStyle = '#020617';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(fp.x, fp.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          const lbl = idx === 2 && fibData.retracePct != null ? `P3 (${Math.round(fibData.retracePct)}%)` : `P${idx + 1}`;
+          ctx.font = '700 8.5px monospace';
+          ctx.fillStyle = pCol;
+          ctx.textAlign = 'center';
+          const yOff = fp.y > padT + 14 ? fp.y - 6 : fp.y + 13;
+          ctx.fillText(lbl, Math.max(padL + 16, Math.min(W - padR - 16, fp.x)), yOff);
+        });
+        const reqPts = fibTool === 'retrace' ? 2 : 3;
+        if (fibTool !== 'none' && pipFibPoints.length < reqPts) {
+          const stepTxt = pipFibPoints.length === 0
+            ? 'Clique P1 (Início Perna A)'
+            : pipFibPoints.length === 1
+              ? 'Clique P2 (Fim Perna A)'
+              : 'Clique P3 (Fim Retorno B → Projetar C)';
+          ctx.font = '600 9px Inter, sans-serif';
+          const sw = ctx.measureText(stepTxt).width + 12;
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+          ctx.lineWidth = 1;
+          ctx.fillRect(padL + 2, padT + 2, sw, 16);
+          ctx.strokeRect(padL + 2, padT + 2, sw, 16);
+          ctx.fillStyle = '#fef3c7';
+          ctx.textAlign = 'left';
+          ctx.fillText(stepTxt, padL + 8, padT + 13);
+        }
+      }
       const ly = Math.max(padT + 8, Math.min(H - padB - 8, py(last.close)));
       const bullLast = last.close >= last.open;
       ctx.strokeStyle = bullLast ? '#34d399' : '#fb7185';
@@ -2504,6 +2810,7 @@
       if (el) el.textContent = `${pLabel} · ${periodDates()}`;
       renderPocSelectorPills();
       updateAbsorptionUI();
+      updateFibDiagnosisUI();
       pipDirty = true;
     }
 
@@ -2609,32 +2916,13 @@
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
-      if (fibTool === 'none') {
-        if (!tradeGroupRefs.length) return;
-        const th = raycaster.intersectObjects(tradeGroupRefs, true);
-        if (th.length) {
-          let node = th[0].object;
-          while (node && !node.userData.trade) node = node.parent;
-          if (node && node.userData.trade) showTradeSummary(node.userData.trade);
-        }
-        return;
+      if (!tradeGroupRefs.length) return;
+      const th = raycaster.intersectObjects(tradeGroupRefs, true);
+      if (th.length) {
+        let node = th[0].object;
+        while (node && !node.userData.trade) node = node.parent;
+        if (node && node.userData.trade) showTradeSummary(node.userData.trade);
       }
-      const hits = raycaster.intersectObjects(interactiveMeshes, false);
-      if (!hits.length) return;
-      const p = hits[0].point;
-      let realVol = null;
-      if (terrainState) {
-        const tx = Math.max(0, Math.min(timeBinsCount - 1, Math.floor((p.x / PLANE_WIDTH + 0.5) * timeBinsCount)));
-        const py = Math.max(0, Math.min(priceBinsCount - 1, Math.floor((0.5 - p.z / PLANE_DEPTH) * priceBinsCount)));
-        realVol = terrainState.displayGrid[tx][py];
-      } else if (trailState && trailState.slice.length) {
-        const idx = Math.max(0, Math.min(trailState.slice.length - 1, Math.round((p.x / PLANE_WIDTH + 0.5) * (trailState.slice.length - 1))));
-        realVol = trailState.slice[idx].volume;
-      }
-      if (fibAnchors.length >= 2) fibAnchors = [];
-      fibAnchors.push({ x: p.x, y: p.y, z: p.z, minuteOfDay: timeFromX(p.x), price: priceFromZ(p.z), volume: p.y - tiltYAt(p.z), realVol });
-      renderOverlay();
-      showToast(fibAnchors.length === 1 ? 'Ponto 1 definido — clique no 2º (cume ou vale).' : 'Fibonacci ancorado. Clique de novo para recomeçar.');
     }
 
     function scheduleTerrainRefresh() {
@@ -3068,18 +3356,82 @@
       document.getElementById('btn-ws').addEventListener('click', () => connectWS(true));
       document.getElementById('fib-retrace').addEventListener('click', () => setFibTool(fibTool === 'retrace' ? 'none' : 'retrace'));
       document.getElementById('fib-extension').addEventListener('click', () => setFibTool(fibTool === 'extension' ? 'none' : 'extension'));
-      document.getElementById('fib-golden').addEventListener('click', () => setFibTool(fibTool === 'golden' ? 'none' : 'golden'));
-      document.getElementById('fib-axis-volume').addEventListener('click', () => setFibAxis('volume'));
-      document.getElementById('fib-axis-price').addEventListener('click', () => setFibAxis('price'));
-      document.getElementById('fib-axis-time').addEventListener('click', () => setFibAxis('time'));
+      document.getElementById('fib-golden').addEventListener('click', () => autoAnchorPipFib());
+      const clearAllFib = () => {
+        fibAnchors = [];
+        pipFibPoints = [];
+        pipFibHover = null;
+        fibTool = 'none';
+        syncFibUI();
+        updateFibDiagnosisUI();
+        renderPiP();
+        renderOverlay();
+      };
+      document.getElementById('btn-pip-fib').addEventListener('click', () => setFibTool(fibTool === 'extension' ? 'none' : 'extension'));
+      document.getElementById('btn-pip-fib-auto').addEventListener('click', () => autoAnchorPipFib());
+      document.getElementById('btn-pip-fib-clear').addEventListener('click', clearAllFib);
+      document.getElementById('fib-clear').addEventListener('click', clearAllFib);
       document.querySelectorAll('.fib-level').forEach((b) => b.addEventListener('click', () => {
         const k = b.dataset.level;
         if (fibLevels.has(k)) fibLevels.delete(k); else fibLevels.add(k);
         syncFibUI();
+        updateFibDiagnosisUI();
+        renderPiP();
         renderOverlay();
       }));
       document.getElementById('fib-opacity').addEventListener('input', (e) => { fibOpacity = parseFloat(e.target.value); document.getElementById('val-fib-opacity').textContent = `${Math.round(fibOpacity * 100)}%`; renderOverlay(); });
-      document.getElementById('fib-clear').addEventListener('click', () => { fibAnchors = []; fibTool = 'none'; syncFibUI(); renderOverlay(); });
+
+      const pipCanvas = document.getElementById('pip');
+      const pipPointFromEvent = (e) => {
+        if (!pipCanvas || !lastPipLayout || !lastPipLayout.bars.length) return null;
+        const { bars, lo, hi, range, padT, padB, padL, padR, cw, W, H } = lastPipLayout;
+        const rect = pipCanvas.getBoundingClientRect();
+        const cx = (e.clientX - rect.left) * (W / (rect.width || 1));
+        const cy = (e.clientY - rect.top) * (H / (rect.height || 1));
+        if (cx < padL || cx > W - padR || cy < padT || cy > H - padB) return null;
+        const idx = Math.max(0, Math.min(bars.length - 1, Math.floor((cx - padL) / (cw || 1))));
+        const bar = bars[idx];
+        const py = (p) => padT + (hi - p) / range * (H - padT - padB);
+        let price = hi - Math.max(0, Math.min(1, (cy - padT) / ((H - padT - padB) || 1))) * range;
+        if (Math.abs(cy - py(bar.high)) <= 7) price = bar.high;
+        else if (Math.abs(cy - py(bar.low)) <= 7) price = bar.low;
+        return { time: bar.time, price, minuteOfDay: bar.minuteOfDay };
+      };
+      if (pipCanvas) {
+        pipCanvas.addEventListener('mousemove', (e) => {
+          const reqPts = fibTool === 'retrace' ? 2 : 3;
+          if (fibTool === 'none' || pipFibPoints.length >= reqPts) return;
+          const pt = pipPointFromEvent(e);
+          if (pt) {
+            pipFibHover = pt;
+            renderPiP();
+          }
+        });
+        pipCanvas.addEventListener('mouseleave', () => {
+          if (pipFibHover) { pipFibHover = null; renderPiP(); }
+        });
+        pipCanvas.addEventListener('click', (e) => {
+          if (fibTool === 'none') return;
+          e.stopPropagation();
+          const pt = pipPointFromEvent(e);
+          if (!pt) return;
+          const reqPts = fibTool === 'retrace' ? 2 : 3;
+          if (pipFibPoints.length >= reqPts) pipFibPoints = [];
+          pipFibPoints.push(pt);
+          if (pipFibPoints.length >= reqPts) pipFibHover = null;
+          syncFibUI();
+          updateFibDiagnosisUI();
+          renderPiP();
+          renderOverlay();
+          if (fibTool === 'extension') {
+            if (pipFibPoints.length === 1) showToast('P1 (Início A) marcado — clique P2 (Fim da Perna A) no Mini-Gráfico.');
+            else if (pipFibPoints.length === 2) showToast('P2 (Fim A) marcado — clique P3 (Fim do Retorno B) para projetar a Perna C.');
+            else showToast('Expansão 3P (P1 → P2 → P3) projetada no Mini-Gráfico e cruzada com o Volume 3D.');
+          } else if (pipFibPoints.length === 2) {
+            showToast('Retração 2P projetada no Mini-Gráfico e no Volume 3D.');
+          }
+        });
+      }
       const helpModal = document.getElementById('help-modal');
       document.getElementById('btn-help').addEventListener('click', () => helpModal.classList.remove('hidden'));
       document.getElementById('btn-close-modal').addEventListener('click', () => helpModal.classList.add('hidden'));
@@ -3105,31 +3457,27 @@
     function setFibTool(tool) {
       fibTool = tool;
       fibAnchors = [];
+      pipFibPoints = [];
+      pipFibHover = null;
       if (tool === 'retrace') fibLevels = new Set(['0.382', '0.5', '0.618', '1.0']);
-      else if (tool === 'extension') fibLevels = new Set(['1.0', '1.272', '1.618']);
+      else if (tool === 'extension') fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
       else if (tool === 'golden') fibLevels = new Set(['0.618', '1.618']);
-      else fibLevels = new Set();
+      else fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
       syncFibUI();
+      updateFibDiagnosisUI();
+      renderPiP();
       renderOverlay();
-      if (tool !== 'none') showToast('Ferramenta ativa — clique em 2 pontos na malha.');
+      if (tool === 'extension') showToast('Fibo 3P ativo — clique P1 (Início A), P2 (Fim A) e P3 (Fim B) no Mini-Gráfico.');
+      else if (tool === 'retrace') showToast('Retração 2P ativa — clique P1 e P2 no Mini-Gráfico.');
     }
 
     function setFibAxis(axis) {
       fibAxis = axis;
-      const axisBtns = [['fib-axis-volume', 'Volume (Z)'], ['fib-axis-price', 'Preço (Y)'], ['fib-axis-time', 'Tempo (X)']];
-      axisBtns.forEach(([id]) => {
-        const b = document.getElementById(id);
-        if (!b) return;
-        const active = (id === 'fib-axis-' + axis);
-        b.className = active
-          ? 'py-1.5 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition'
-          : 'py-1.5 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition';
-      });
       renderOverlay();
     }
 
     function syncFibUI() {
-      const tools = [['fib-retrace', 'retrace'], ['fib-extension', 'extension'], ['fib-golden', 'golden']];
+      const tools = [['fib-retrace', 'retrace'], ['fib-extension', 'extension']];
       tools.forEach(([id, tool]) => {
         const b = document.getElementById(id);
         if (!b) return;
@@ -3137,6 +3485,16 @@
           ? 'py-2 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1'
           : 'py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1';
       });
+      const pipBtn = document.getElementById('btn-pip-fib');
+      if (pipBtn) {
+        pipBtn.className = fibTool === 'extension'
+          ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-slate-950 transition flex items-center gap-1'
+          : 'px-1.5 py-0.5 rounded text-[9px] font-semibold text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1';
+      }
+      const pipClr = document.getElementById('btn-pip-fib-clear');
+      if (pipClr) pipClr.classList.toggle('hidden', fibTool === 'none' && pipFibPoints.length === 0);
+      const pipCv = document.getElementById('pip');
+      if (pipCv) pipCv.style.cursor = fibTool !== 'none' ? 'crosshair' : 'default';
       document.querySelectorAll('.fib-level').forEach((b) => {
         b.classList.toggle('cv-active-chip', fibLevels.has(b.dataset.level));
       });
@@ -3207,7 +3565,7 @@
       fluxo: { top: '186px', left: '12px', right: 'auto', bottom: 'auto', width: '274px', height: '' },
       camera: { top: '12px', left: 'auto', right: '12px', bottom: 'auto', width: '178px', height: '' },
       legenda: { top: 'auto', left: '12px', right: 'auto', bottom: '12px', width: '', height: '' },
-      pip: { top: 'auto', left: 'auto', right: '12px', bottom: '12px', width: '376px', height: '' },
+      pip: { top: 'auto', left: 'auto', right: '12px', bottom: '12px', width: '456px', height: '' },
     };
     let hudTopZ = 20;
 
