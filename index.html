@@ -250,7 +250,6 @@
             <div class="flex items-center justify-between"><span class="text-slate-300">Consumo de Liquidez <span class="text-slate-500">(derretimento)</span></span>
               <label class="cv-switch"><input type="checkbox" id="toggle-liquidity"><span class="cv-track"><span class="cv-thumb"></span></span></label>
             </div>
-            <input id="ref-price" type="number" placeholder="POC manual (vazio = automático)" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-500">
             <input id="ma-period" type="number" value="20" min="1" placeholder="período da média móvel" class="w-full bg-dark-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-200 text-[11px] focus:outline-none focus:border-amber-500">
           </div>
         </details>
@@ -1566,7 +1565,6 @@
       document.getElementById('preset-week').addEventListener('click', () => { setDatePreset(7); stylePreset('preset-week'); updateVisualization(); });
       document.getElementById('preset-month').addEventListener('click', () => { setDatePreset(30); stylePreset('preset-month'); updateVisualization(); });
       document.getElementById('preset-year').addEventListener('click', () => { setDatePreset(365); stylePreset('preset-year'); updateVisualization(); });
-      document.getElementById('ref-price').addEventListener('change', (e) => { refPrice = e.target.value === '' ? null : Number(e.target.value); updateVisualization(); });
       document.getElementById('ma-period').addEventListener('change', (e) => { maPeriod = Math.max(1, Number(e.target.value) || 20); updateVisualization(); });
       document.getElementById('f-date-from').addEventListener('input', (e) => { dateFrom = e.target.value || null; updateVisualization(); });
       document.getElementById('f-date-to').addEventListener('input', (e) => { dateTo = e.target.value || null; updateVisualization(); });
