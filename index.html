@@ -118,15 +118,12 @@
 
       <div id="card-fluxo" data-card-id="fluxo" data-resize="w" style="top:186px; left:12px; width:274px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl text-xs flex flex-col gap-1.5">
         <div class="cv-drag-handle flex items-center justify-between border-b border-slate-800 pb-1.5 gap-1">
-          <span class="text-slate-200 font-semibold flex items-center gap-1.5 text-[11px] shrink-0"><i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
-          <div class="flex items-center gap-1 flex-wrap justify-end">
-            <div id="poc-selector-pills" class="flex items-center gap-1 flex-wrap justify-end"></div>
-            <button type="button" class="cv-collapse-btn w-5 h-5 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
-          </div>
+          <span class="text-slate-200 font-semibold flex items-center gap-1.5 text-[11px] shrink-0"><i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i><i class="fa-solid fa-gauge-high text-amber-400"></i> Fluxo &amp; Absorção</span>
+          <button type="button" class="cv-collapse-btn w-5 h-5 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
         </div>
         <div class="cv-card-body flex flex-col gap-1.5">
           <div class="flex items-center justify-between gap-2 text-[10px] bg-slate-950/75 border border-amber-500/25 rounded-lg px-2 py-1">
-            <span id="an-poc-target" class="font-mono font-bold text-amber-300 truncate">POC #1 @ —</span>
+            <span id="an-poc-target" class="font-mono font-bold text-amber-300 truncate">POC Mais Próxima @ —</span>
             <span id="an-poc-vol-badge" class="font-mono text-slate-300 shrink-0">Vol: —</span>
           </div>
 
@@ -150,22 +147,29 @@
             <div id="an-abs-status" class="text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-slate-900/90 border border-slate-700/70 text-slate-300 mt-0.5">STATUS: EQUILÍBRIO NA POC</div>
           </div>
 
-          <div class="space-y-0.5 text-[11px]">
-            <div class="flex justify-between items-center"><span class="text-slate-400">Preço Atual:</span><span id="an-live-price" class="font-mono font-bold text-white">—</span></div>
-            <div class="flex justify-between items-center"><span class="text-slate-400">Dist. Últ. Fech. (<span id="an-prev-close-ref" class="text-slate-500">—</span>):</span><span id="an-close-dist" class="font-mono font-semibold text-slate-200">—</span></div>
-            <div class="flex justify-between items-center"><span class="text-slate-400">Dist. vs POC:</span><span id="an-poc-dist" class="font-mono font-semibold text-slate-200">—</span></div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-1 border-t border-slate-800 text-[10px]">
-            <div class="flex justify-between"><span class="text-slate-400">Δ Tick:</span><span id="an-delta-real" class="font-mono font-semibold text-slate-400">—</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Δ POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Δ OHLC:</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Liq. POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">VWSD:</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Skew:</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Z-Score:</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Ader. Φ:</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
-          </div>
+          <details id="fluxo-more-details" class="cv-acc">
+            <summary class="!py-1.5 !px-2 !text-[10px] text-slate-300">
+              <span class="flex items-center gap-1.5"><i class="fa-solid fa-table-list text-indigo-400"></i> Detalhes &amp; Distâncias</span>
+              <i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i>
+            </summary>
+            <div class="cv-acc-body !p-2 !gap-1.5">
+              <div class="space-y-0.5 text-[11px]">
+                <div class="flex justify-between items-center"><span class="text-slate-400">Preço Atual:</span><span id="an-live-price" class="font-mono font-bold text-white">—</span></div>
+                <div class="flex justify-between items-center"><span class="text-slate-400">Dist. Últ. Fech. (<span id="an-prev-close-ref" class="text-slate-500">—</span>):</span><span id="an-close-dist" class="font-mono font-semibold text-slate-200">—</span></div>
+                <div class="flex justify-between items-center"><span class="text-slate-400">Dist. vs POC:</span><span id="an-poc-dist" class="font-mono font-semibold text-slate-200">—</span></div>
+              </div>
+              <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-1 border-t border-slate-800 text-[10px]">
+                <div class="flex justify-between"><span class="text-slate-400">Δ Tick:</span><span id="an-delta-real" class="font-mono font-semibold text-slate-400">—</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Δ POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Δ OHLC:</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Liq. POC:</span><span id="an-liquidity" class="font-mono font-semibold text-amber-300">100%</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">VWSD:</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Skew:</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Z-Score:</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Ader. Φ:</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
+              </div>
+            </div>
+          </details>
         </div>
         <div class="cv-resize-handle" title="Redimensionar"></div>
       </div>
@@ -1675,48 +1679,47 @@
       if (isTrail && (!trailState || !trailState.slice.length)) return;
       const tMin = isTrail ? trailState.slice[0].time : -Infinity;
       const tMax = isTrail ? trailState.slice[trailState.slice.length - 1].time : Infinity;
-      if (showTrail) {
-        for (const trade of trades) {
-          if (!matchesCurrentSymbol(trade.symbol)) continue;
-          if (!inActiveWindow(trade.entryTime)) continue;
-          if (isTrail && (trade.entryTime > tMax || (trade.exitTime && trade.exitTime < tMin))) continue;
-          const g = new THREE.Group();
-          const isBuy = trade.direction === 'compra';
-          const open = !trade.exitTime;
-          const dirColor = isBuy ? COLORS.buy : COLORS.sell;
-          const pastel = isBuy ? COLORS.buyPastel : COLORS.sellPastel;
-          const entry = scenePoint(trade.entryM, trade.entryPrice, trade.entryTime);
-          const entryArrow = makeArrow(trade.direction, open ? COLORS.gold : dirColor, 0.9);
-          entryArrow.position.set(entry.x, entry.y, entry.z); g.add(entryArrow);
-          addAnchorBeam(g, entry.x, entry.y, entry.z, dirColor);
+      for (const trade of trades) {
+        const open = !trade.exitTime;
+        if (!showTrail && !open) continue;
+        if (!matchesCurrentSymbol(trade.symbol)) continue;
+        if (!open && !inActiveWindow(trade.entryTime)) continue;
+        if (isTrail && (trade.entryTime > tMax || (trade.exitTime && trade.exitTime < tMin))) continue;
+        const g = new THREE.Group();
+        const isBuy = trade.direction === 'compra';
+        const dirColor = isBuy ? COLORS.buy : COLORS.sell;
+        const pastel = isBuy ? COLORS.buyPastel : COLORS.sellPastel;
+        const entry = scenePoint(trade.entryM, trade.entryPrice, trade.entryTime);
+        const entryArrow = makeArrow(trade.direction, open ? COLORS.gold : dirColor, 0.9);
+        entryArrow.position.set(entry.x, entry.y, entry.z); g.add(entryArrow);
+        addAnchorBeam(g, entry.x, entry.y, entry.z, dirColor);
 
-          const pathPts = [{ m: trade.entryM, p: trade.entryPrice, t: trade.entryTime }];
-          const barSrc = isTrail ? trailState.slice : activeData;
-          if (trade.exitTime) {
-            for (const b of barSrc) { if (b.time > trade.entryTime && b.time < trade.exitTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
-            pathPts.push({ m: trade.exitM, p: trade.exitPrice, t: trade.exitTime });
-          } else {
-            for (const b of barSrc) { if (b.time > trade.entryTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
-          }
-          const worldPts = pathPts.map((pt) => scenePoint(pt.m, pt.p, pt.t));
-          const pos = []; worldPts.forEach((p) => pos.push(p.x, p.y, p.z));
-          const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-          const trailLine = new THREE.Line(pg, new THREE.LineBasicMaterial({ color: COLORS.gold, transparent: true, opacity: open ? 0.9 : 0.25 }));
-          g.add(trailLine);
-
-          const step = Math.max(1, Math.floor(worldPts.length / 160));
-          for (let i = 1; i < worldPts.length - (open ? 1 : 0); i += step) { const p = worldPts[i]; const a = makeArrow(trade.direction, pastel, 0.32, { flat: true }); a.position.set(p.x, p.y, p.z); g.add(a); }
-
-          if (!open) { const exit = scenePoint(trade.exitM, trade.exitPrice, trade.exitTime); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); addAnchorBeam(g, exit.x, exit.y, exit.z, dirColor); g.userData.exitArrow = ea; }
-          else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip, trade }; activeTradeGroups.push(g); }
-          g.userData.trade = trade;
-          g.userData.trailLine = trailLine;
-          g.userData.entryArrow = entryArrow;
-          if (!open && entryArrow.userData.mat) entryArrow.userData.mat.emissiveIntensity = 0.6;
-          if (!open && g.userData.exitArrow && g.userData.exitArrow.userData.mat) g.userData.exitArrow.userData.mat.emissiveIntensity = 0.6;
-          overlayGroup.add(g);
-          tradeGroupRefs.push(g);
+        const pathPts = [{ m: trade.entryM, p: trade.entryPrice, t: trade.entryTime }];
+        const barSrc = isTrail ? trailState.slice : activeData;
+        if (trade.exitTime) {
+          for (const b of barSrc) { if (b.time > trade.entryTime && b.time < trade.exitTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
+          pathPts.push({ m: trade.exitM, p: trade.exitPrice, t: trade.exitTime });
+        } else {
+          for (const b of barSrc) { if (b.time > trade.entryTime) pathPts.push({ m: b.minuteOfDay, p: b.close, t: b.time }); }
         }
+        const worldPts = pathPts.map((pt) => scenePoint(pt.m, pt.p, pt.t));
+        const pos = []; worldPts.forEach((p) => pos.push(p.x, p.y, p.z));
+        const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const trailLine = new THREE.Line(pg, new THREE.LineBasicMaterial({ color: COLORS.gold, transparent: true, opacity: open ? 0.9 : 0.25 }));
+        g.add(trailLine);
+
+        const step = Math.max(1, Math.floor(worldPts.length / 160));
+        for (let i = 1; i < worldPts.length - (open ? 1 : 0); i += step) { const p = worldPts[i]; const a = makeArrow(trade.direction, pastel, 0.32, { flat: true }); a.position.set(p.x, p.y, p.z); g.add(a); }
+
+        if (!open) { const exit = scenePoint(trade.exitM, trade.exitPrice, trade.exitTime); const ea = makeArrow(trade.direction, dirColor, 0.9); ea.position.set(exit.x, exit.y, exit.z); g.add(ea); addAnchorBeam(g, exit.x, exit.y, exit.z, dirColor); g.userData.exitArrow = ea; }
+        else { const tip = worldPts[worldPts.length - 1]; const sp = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 14), new THREE.MeshBasicMaterial({ color: COLORS.gold })); sp.position.set(tip.x, tip.y, tip.z); g.add(sp); g.userData.active = { entryArrow, sphere: sp, tip, trade }; activeTradeGroups.push(g); }
+        g.userData.trade = trade;
+        g.userData.trailLine = trailLine;
+        g.userData.entryArrow = entryArrow;
+        if (!open && entryArrow.userData.mat) entryArrow.userData.mat.emissiveIntensity = 0.6;
+        if (!open && g.userData.exitArrow && g.userData.exitArrow.userData.mat) g.userData.exitArrow.userData.mat.emissiveIntensity = 0.6;
+        overlayGroup.add(g);
+        tradeGroupRefs.push(g);
       }
       renderABCWaves();
       renderReferenceLine();
@@ -1841,7 +1844,7 @@
 
     function computeAnalytics(barsSrc = activeData) {
       if (!barsSrc.length) {
-        analytics = { pocPrice: null, pocVol: 0, pocBuyVol: 0, pocSellVol: 0, pocBuyPct: 0.5, pocSellPct: 0.5, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, prevClose: null, prevCloseDist: 0, prevClosePct: 0, pocDistance: 0, pocDistancePct: 0, phiShare: 0, phiEnrich: 0 };
+        analytics = { pocPrice: null, clusterCount: 1, pocVol: 0, pocBuyVol: 0, pocSellVol: 0, pocBuyPct: 0.5, pocSellPct: 0.5, delta: 0, pocDelta: 0, absorption: 0.5, vwsd: 0, skew: 0, maxZ: 0, lastPrice: null, prevClose: null, prevCloseDist: 0, prevClosePct: 0, pocDistance: 0, pocDistancePct: 0, phiShare: 0, phiEnrich: 0 };
         return;
       }
       let wsum = 0, mean = 0;
@@ -1861,19 +1864,39 @@
         volMap.set(k, (volMap.get(k) || 0) + b.volume);
       }
 
-      const n = Math.min(pocs.length || 0, Math.max(1, nPocs));
-      const targetPocs = !n ? [] : (selectedPocIndex === -1 ? pocs.slice(0, n) : [pocs[Math.min(selectedPocIndex, n - 1)]]);
-      const targetPocPrice = targetPocs.length ? targetPocs[0].price : pocPrice;
-      const bandHalf = Math.max(getPriceBucketStep(), (scale.priceRange || 1) / Math.max(12, priceBinsCount)) * 0.65;
+      const lastPrice = (lastTick && isFinite(lastTick.price)) ? lastTick.price : barsSrc[barsSrc.length - 1].close;
+      selectedPocIndex = 0;
+      if (pocs.length > 1) {
+        pocs.sort((a, b) => Math.abs(a.price - lastPrice) - Math.abs(b.price - lastPrice));
+        pocs.forEach((p, idx) => { p.level = idx + 1; });
+      }
+      const p0 = pocs.length ? pocs[0] : (pocPrice != null ? { price: pocPrice, vol: 0 } : null);
+      const clusterRadius = Math.max(getPriceBucketStep() * 2.5, (scale.priceRange || 1) * 0.10);
+      const clusterPocs = p0 ? pocs.filter((p) => Math.abs(p.price - p0.price) <= clusterRadius) : [];
+      if (p0 && !clusterPocs.length) clusterPocs.push(p0);
 
-      let pocBuyVol = 0, pocSellVol = 0;
-      for (const b of barsSrc) {
-        if (!targetPocs.length) break;
-        let inPoc = false;
-        for (const tp of targetPocs) {
-          if (Math.abs(b.close - tp.price) <= bandHalf) { inPoc = true; break; }
+      let targetPocPrice = p0 ? p0.price : null;
+      if (clusterPocs.length > 1) {
+        let cwSum = 0, cpSum = 0;
+        for (const tp of clusterPocs) {
+          const proxW = 1 / (1 + Math.abs(tp.price - lastPrice) / (clusterRadius * 0.4));
+          const w = Math.max(1, tp.vol || 1) * proxW;
+          cpSum += tp.price * w;
+          cwSum += w;
         }
-        if (!inPoc) continue;
+        if (cwSum > 0) targetPocPrice = cpSum / cwSum;
+      }
+
+      const sigma = Math.max(getPriceBucketStep() * 1.3, (scale.priceRange || 1) / Math.max(12, priceBinsCount), clusterPocs.length > 1 ? clusterRadius * 0.55 : 0);
+      const maxDist = sigma * 2.3;
+      const denom = (barsSrc.length - 1) || 1;
+      let pocBuyVol = 0, pocSellVol = 0, pocRawBuy = 0, pocRawSell = 0;
+
+      for (let i = 0; i < barsSrc.length; i++) {
+        const b = barsSrc[i];
+        if (targetPocPrice == null) break;
+        const dist = Math.abs(b.close - targetPocPrice);
+        if (dist > maxDist) continue;
         let bullFrac;
         if (b.high > b.low) {
           const pos = (b.close - b.low) / (b.high - b.low);
@@ -1882,14 +1905,29 @@
           bullFrac = b.close >= b.open ? 0.8 : 0.2;
         }
         const bv = b.volume * bullFrac;
-        pocBuyVol += bv;
-        pocSellVol += b.volume - bv;
+        const sv = b.volume - bv;
+        pocRawBuy += bv;
+        pocRawSell += sv;
+        const gaussW = Math.exp(-0.5 * Math.pow(dist / sigma, 2));
+        const recencyW = Math.exp(-2.6 * (1 - i / denom));
+        const w = gaussW * recencyW;
+        pocBuyVol += bv * w;
+        pocSellVol += sv * w;
       }
-      const pocVol = pocBuyVol + pocSellVol;
-      const pocDelta = pocBuyVol - pocSellVol;
-      const pocBuyPct = pocVol > 0 ? pocBuyVol / pocVol : 0.5;
+
+      const pocRawVol = pocRawBuy + pocRawSell;
+      const wTotal = pocBuyVol + pocSellVol;
+      let pocBuyPct = wTotal > 0 ? pocBuyVol / wTotal : 0.5;
+      if (targetPocPrice != null && Math.abs(lastPrice - targetPocPrice) <= maxDist && (liveDelta.buy + liveDelta.sell) > 0) {
+        const tickTotal = liveDelta.buy + liveDelta.sell;
+        const tickBuyPct = liveDelta.buy / tickTotal;
+        const proximity = Math.exp(-0.5 * Math.pow((lastPrice - targetPocPrice) / sigma, 2));
+        pocBuyPct = pocBuyPct * (1 - 0.28 * proximity) + tickBuyPct * (0.28 * proximity);
+      }
+      pocBuyPct = Math.max(0.02, Math.min(0.98, pocBuyPct));
       const pocSellPct = 1 - pocBuyPct;
-      const absorption = pocVol ? Math.max(0, Math.min(1, 1 - Math.abs(pocDelta) / pocVol)) : 0.5;
+      const pocDelta = pocRawBuy - pocRawSell;
+      const absorption = pocRawVol > 0 ? Math.max(0, Math.min(1, 1 - Math.abs(pocBuyPct - pocSellPct))) : 0.5;
 
       let maxBucketVol = 0;
       volMap.forEach((v) => { if (v > maxBucketVol) maxBucketVol = v; });
@@ -1914,14 +1952,13 @@
       let maxZ = 0;
       for (const b of barsSrc) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
 
-      const lastPrice = (lastTick && isFinite(lastTick.price)) ? lastTick.price : barsSrc[barsSrc.length - 1].close;
       const prevClose = getPrevClosePrice(barsSrc);
       const prevCloseDist = prevClose != null ? lastPrice - prevClose : 0;
       const prevClosePct = (prevClose != null && prevClose !== 0) ? (prevCloseDist / prevClose) * 100 : 0;
       const pocDistance = targetPocPrice != null ? lastPrice - targetPocPrice : 0;
       const pocDistancePct = (targetPocPrice != null && targetPocPrice !== 0) ? (pocDistance / targetPocPrice) * 100 : 0;
 
-      analytics = { pocPrice: targetPocPrice, pocVol, pocBuyVol, pocSellVol, pocBuyPct, pocSellPct, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, prevClose, prevCloseDist, prevClosePct, pocDistance, pocDistancePct, phiShare, phiEnrich };
+      analytics = { pocPrice: targetPocPrice, clusterCount: clusterPocs.length, pocVol: pocRawVol, pocBuyVol: pocRawVol * pocBuyPct, pocSellVol: pocRawVol * pocSellPct, pocBuyPct, pocSellPct, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, prevClose, prevCloseDist, prevClosePct, pocDistance, pocDistancePct, phiShare, phiEnrich };
     }
 
     function getPipBars() {
@@ -2062,6 +2099,86 @@
           ctx.fillText(`#${idx + 1}`, tx, Math.max(padT + 9, y - 2));
         });
       }
+      if (trades.length && bars.length >= 2) {
+        const tfSec = pipTimeframe === 'D1' ? 86400 : ({ M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600 }[pipTimeframe] || 60);
+        const findBarIdx = (tSec) => {
+          if (tSec == null) return -1;
+          if (pipTimeframe === 'D1') {
+            const k = localDateKey(tSec);
+            return bars.findIndex((b) => localDateKey(b.time) === k);
+          }
+          if (tSec < bars[0].time - tfSec || tSec > bars[bars.length - 1].time + tfSec) return -1;
+          let found = 0;
+          for (let i = 0; i < bars.length; i++) {
+            if (bars[i].time <= tSec) found = i;
+            else break;
+          }
+          return found;
+        };
+        const drawPipArrow = (x, y, dir, color) => {
+          ctx.fillStyle = color;
+          ctx.strokeStyle = '#020617';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (dir === 'compra') {
+            ctx.moveTo(x, y - 6);
+            ctx.lineTo(x + 4.5, y + 3);
+            ctx.lineTo(x - 4.5, y + 3);
+          } else {
+            ctx.moveTo(x, y + 6);
+            ctx.lineTo(x + 4.5, y - 3);
+            ctx.lineTo(x - 4.5, y - 3);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        };
+
+        for (const tr of trades) {
+          if (!matchesCurrentSymbol(tr.symbol)) continue;
+          const open = !tr.exitTime;
+          const eIdxRaw = findBarIdx(tr.entryTime);
+          const xIdxRaw = open ? (bars.length - 1) : findBarIdx(tr.exitTime);
+          if (eIdxRaw === -1 && xIdxRaw === -1 && !open) continue;
+          if (open && tr.entryTime > bars[bars.length - 1].time + tfSec) continue;
+
+          const eIdx = eIdxRaw !== -1 ? eIdxRaw : 0;
+          const xE = padL + eIdx * cw + cw / 2;
+          const yE = Math.max(padT + 5, Math.min(H - padB - 5, py(tr.entryPrice)));
+          const isBuy = tr.direction === 'compra';
+          const entryCol = isBuy ? '#38bdf8' : '#fb7185';
+
+          if (open || xIdxRaw !== -1) {
+            const xX = padL + (open ? bars.length - 1 : xIdxRaw) * cw + cw / 2;
+            const xPrice = open ? last.close : tr.exitPrice;
+            const yX = Math.max(padT + 5, Math.min(H - padB - 5, py(xPrice)));
+            const resCol = open ? '#fbbf24' : (tr.result === 'gain' ? '#00e07f' : '#ff3b5c');
+
+            ctx.strokeStyle = resCol;
+            ctx.lineWidth = open ? 1.5 : 1.1;
+            ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            ctx.moveTo(xE, yE);
+            ctx.lineTo(xX, yX);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            if (open) {
+              ctx.fillStyle = '#fbbf24';
+              ctx.beginPath();
+              ctx.arc(xX, yX, 3.2, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              drawPipArrow(xX, yX, isBuy ? 'venda' : 'compra', resCol);
+            }
+          }
+
+          if (eIdxRaw !== -1) {
+            drawPipArrow(xE, yE, tr.direction, entryCol);
+          }
+        }
+      }
+
       const dec = getPriceDecimals(hi);
       const ly = Math.max(padT + 8, Math.min(H - padB - 8, py(last.close)));
       const bullLast = last.close >= last.open;
@@ -2101,41 +2218,17 @@
     }
 
     function renderPocSelectorPills() {
-      const box = document.getElementById('poc-selector-pills');
-      if (!box) return;
-      box.innerHTML = '';
-      const count = pocs.length;
-      if (!count) return;
-      if (selectedPocIndex >= count) selectedPocIndex = 0;
-      const makeBtn = (idx, label) => {
-        const active = selectedPocIndex === idx;
-        const b = document.createElement('button');
-        b.textContent = label;
-        b.className = active
-          ? 'px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9.5px] font-bold font-mono transition'
-          : 'px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-400 hover:text-white border border-slate-700/60 text-[9.5px] font-mono transition';
-        b.addEventListener('click', () => {
-          selectedPocIndex = idx;
-          computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
-          updateAbsorptionUI();
-          renderOverlay();
-        });
-        return b;
-      };
-      for (let i = 0; i < count; i++) box.appendChild(makeBtn(i, `#${i + 1}`));
-      if (count > 1) box.appendChild(makeBtn(-1, 'Todas'));
+      selectedPocIndex = 0;
     }
 
     function updateAbsorptionUI() {
       const dec = getPriceDecimals(scale.maxPrice);
       const an = analytics;
       const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-      const pocLabel = selectedPocIndex === -1
-        ? `Todas (${pocs.length}) @ ${fmtPrice(an.pocPrice, dec)}`
-        : (selectedPocIndex === 0
-          ? `POC #1 (Mais Próxima) @ ${fmtPrice(an.pocPrice, dec)}`
-          : `POC #${selectedPocIndex + 1} (${selectedPocIndex + 1}ª Próxima) @ ${fmtPrice(an.pocPrice, dec)}`);
-      set('an-poc-target', an.pocPrice != null ? pocLabel : 'POC #1 @ —');
+      const pocLabel = an.clusterCount > 1
+        ? `Zona POC (${an.clusterCount}) @ ${fmtPrice(an.pocPrice, dec)}`
+        : `POC Mais Próxima @ ${fmtPrice(an.pocPrice, dec)}`;
+      set('an-poc-target', an.pocPrice != null ? pocLabel : 'POC Mais Próxima @ —');
       set('an-poc-vol-badge', `Vol: ${fmtCompactVol(an.pocVol)}`);
       set('an-absorption', `${Math.round(an.absorption * 100)}%`);
       const buyPct100 = Math.round(an.pocBuyPct * 1000) / 10;
@@ -2171,7 +2264,7 @@
       const stEl = document.getElementById('an-abs-status');
       if (stEl) {
         if (an.absorption >= 0.75) {
-          stEl.textContent = `ALTA ABSORÇÃO EM ${selectedPocIndex === -1 ? 'POCs' : 'POC #' + (selectedPocIndex + 1)}`;
+          stEl.textContent = an.clusterCount > 1 ? `ALTA ABSORÇÃO NA ZONA POC (${an.clusterCount})` : 'ALTA ABSORÇÃO NA POC';
           stEl.className = 'text-[9.5px] font-mono text-center py-0.5 px-1.5 rounded bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 mt-0.5 font-semibold';
         } else if (an.pocBuyPct >= 0.58) {
           stEl.textContent = 'CONSUMO COMPRADOR DOMINANTE';
@@ -2392,29 +2485,12 @@
     function updateLiveTickUI() {
       if (!lastTick || !isFinite(lastTick.price)) return;
       const p = lastTick.price;
-      let orderChanged = false;
-      if (pocs.length > 1) {
-        const beforeFirst = pocs[0].price;
-        const beforeOrder = pocs.map((x) => x.price).join(',');
-        pocs.sort((a, b) => Math.abs(a.price - p) - Math.abs(b.price - p));
-        pocs.forEach((x, i) => { x.level = i + 1; });
-        const afterOrder = pocs.map((x) => x.price).join(',');
-        if (beforeOrder !== afterOrder) {
-          orderChanged = true;
-          pocPrice = pocs[0].price;
-          computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
-          renderPocSelectorPills();
-          renderOverlay();
-        }
-      }
-      if (!orderChanged) {
-        const pc = getPrevClosePrice(activeData);
-        analytics.lastPrice = p;
-        analytics.prevClose = pc;
-        analytics.prevCloseDist = pc != null ? p - pc : 0;
-        analytics.prevClosePct = (pc != null && pc !== 0) ? (analytics.prevCloseDist / pc) * 100 : 0;
-        analytics.pocDistance = analytics.pocPrice != null ? p - analytics.pocPrice : 0;
-        analytics.pocDistancePct = (analytics.pocPrice != null && analytics.pocPrice !== 0) ? (analytics.pocDistance / analytics.pocPrice) * 100 : 0;
+      const beforeOrder = pocs.map((x) => x.price).join(',');
+      computeAnalytics(viewMode === 'trail' && trailState ? trailState.slice : activeData);
+      const afterOrder = pocs.map((x) => x.price).join(',');
+      if (beforeOrder !== afterOrder) {
+        pocPrice = pocs.length ? pocs[0].price : pocPrice;
+        renderOverlay();
       }
       updateAbsorptionUI();
       if (priceMarker) {
