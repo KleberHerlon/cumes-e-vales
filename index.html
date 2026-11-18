@@ -498,7 +498,7 @@
     const FIB_LEVELS = [
       { key: '0.382', label: '38.2%', value: 0.382, color: 0x38bdf8 },
       { key: '0.5', label: '50%', value: 0.5, color: 0x818cf8 },
-      { key: '0.618', label: '61.8%', value: 0xc084fc },
+      { key: '0.618', label: '61.8%', value: 0.618, color: 0xc084fc },
       { key: '1.0', label: '100%', value: 1.0, color: 0xe2e8f0 },
       { key: '1.272', label: '127.2%', value: 1.272, color: 0xfbbf24 },
       { key: '1.618', label: '161.8% Φ', value: 1.618, color: 0xffd700 },
@@ -553,6 +553,7 @@
     let pipFibPoints = [];
     let pipFibHover = null;
     let lastPipLayout = null;
+    let fibAutoActive = false;
 
     let rawMarketData = [];
     let dailyMarketData = [];
@@ -1741,7 +1742,8 @@
           { time: p3Bar.time, price: p3Bar.high, minuteOfDay: p3Bar.minuteOfDay },
         ];
       }
-      fibTool = 'extension';
+      fibTool = 'none';
+      fibAutoActive = true;
       if (!fibLevels.size) fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
       pipFibHover = null;
       const acc = document.getElementById('acc-fib');
@@ -3361,6 +3363,7 @@
         fibAnchors = [];
         pipFibPoints = [];
         pipFibHover = null;
+        fibAutoActive = false;
         fibTool = 'none';
         syncFibUI();
         updateFibDiagnosisUI();
@@ -3456,6 +3459,7 @@
 
     function setFibTool(tool) {
       fibTool = tool;
+      fibAutoActive = false;
       fibAnchors = [];
       pipFibPoints = [];
       pipFibHover = null;
@@ -3477,11 +3481,11 @@
     }
 
     function syncFibUI() {
-      const tools = [['fib-retrace', 'retrace'], ['fib-extension', 'extension']];
-      tools.forEach(([id, tool]) => {
+      const tools = [['fib-retrace', fibTool === 'retrace'], ['fib-extension', fibTool === 'extension'], ['fib-golden', fibAutoActive]];
+      tools.forEach(([id, act]) => {
         const b = document.getElementById(id);
         if (!b) return;
-        b.className = fibTool === tool
+        b.className = act
           ? 'py-2 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1'
           : 'py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1';
       });
@@ -3490,6 +3494,12 @@
         pipBtn.className = fibTool === 'extension'
           ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-slate-950 transition flex items-center gap-1'
           : 'px-1.5 py-0.5 rounded text-[9px] font-semibold text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1';
+      }
+      const pipAutoBtn = document.getElementById('btn-pip-fib-auto');
+      if (pipAutoBtn) {
+        pipAutoBtn.className = fibAutoActive
+          ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-slate-950 transition'
+          : 'px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition';
       }
       const pipClr = document.getElementById('btn-pip-fib-clear');
       if (pipClr) pipClr.classList.toggle('hidden', fibTool === 'none' && pipFibPoints.length === 0);
