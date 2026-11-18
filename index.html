@@ -174,12 +174,29 @@
         <div class="cv-resize-handle" title="Redimensionar"></div>
       </div>
 
-      <div id="card-camera" data-card-id="camera" style="top:12px; right:12px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-1.5 flex flex-col gap-1.5">
+      <div id="card-camera" data-card-id="camera" style="top:12px; right:12px; width:178px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-1.5 flex flex-col gap-1.5">
         <div class="cv-drag-handle flex items-center justify-between gap-2 px-1.5 py-0.5 text-[10px] text-slate-400 border-b border-slate-800/80">
           <span class="flex items-center gap-1 font-semibold"><i class="fa-solid fa-grip-vertical text-slate-600"></i> Visão 3D</span>
           <button type="button" class="cv-collapse-btn w-4 h-4 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[9px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
         </div>
         <div class="cv-card-body flex flex-col gap-1.5">
+          <div class="grid grid-cols-2 gap-1 bg-dark-950/90 p-0.5 rounded-lg border border-slate-800">
+            <button id="btn-mouse-rotate" type="button" title="Botão esquerdo gira o gráfico 3D (botão direito arrasta)" class="py-1 px-1.5 rounded-md bg-indigo-600 text-white font-semibold text-[10px] transition flex items-center justify-center gap-1"><i class="fa-solid fa-rotate"></i><span>Girar</span></button>
+            <button id="btn-mouse-pan" type="button" title="Botão esquerdo arrasta/move o gráfico 3D pela tela" class="py-1 px-1.5 rounded-md text-slate-400 hover:text-white font-medium text-[10px] transition flex items-center justify-center gap-1"><i class="fa-solid fa-arrows-up-down-left-right"></i><span>Arrastar</span></button>
+          </div>
+          <div class="bg-dark-950/80 border border-slate-800/90 rounded-lg px-2 py-1.5 flex flex-col gap-1">
+            <div class="flex items-center justify-between text-[10px] text-slate-300">
+              <span>Zoom 3D</span>
+              <span id="val-cam-zoom" class="font-mono text-indigo-300 font-bold">100%</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="btn-zoom-out" type="button" title="Afastar (Zoom Out)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-[10px] shrink-0 transition"><i class="fa-solid fa-minus"></i></button>
+              <input id="slider-cam-zoom" type="range" min="0" max="100" step="1" value="35" class="flex-1 min-w-0 accent-indigo-500 cursor-pointer">
+              <button id="btn-zoom-in" type="button" title="Aproximar (Zoom In)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-[10px] shrink-0 transition"><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+          <button id="btn-cam-center" type="button" title="Centralizar alvo no meio do mapa mantendo ângulo e zoom" class="px-2.5 py-1 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-[11px] font-medium transition"><i class="fa-solid fa-crosshairs text-cyan-400"></i><span class="hidden sm:inline">Centralizar Gráfico</span></button>
+          <div class="text-[9px] text-slate-500 leading-tight px-0.5">Botão direito ou modo Arrastar move o gráfico · Setas movem</div>
           <button id="btn-cam-iso" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-cube text-indigo-400"></i><span class="hidden sm:inline">3D Isométrica</span></button>
           <button id="btn-cam-top" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-border-all text-emerald-400"></i><span class="hidden sm:inline">Topo (Heatmap)</span></button>
           <button id="btn-cam-side" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-chart-bar text-amber-400"></i><span class="hidden sm:inline">Lateral (Profile)</span></button>
@@ -352,6 +369,10 @@
         <details class="cv-acc">
           <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-up-down text-indigo-400"></i> Escala &amp; Inclinação</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-slate-300"><span>Zoom da Câmera</span><span id="val-cam-zoom-side" class="font-mono text-indigo-400 font-semibold">100%</span></div>
+              <input type="range" id="slider-cam-zoom-side" min="0" max="100" step="1" value="35" class="w-full accent-indigo-500 cursor-pointer">
+            </div>
             <div class="space-y-1.5">
               <div class="flex justify-between text-slate-300"><span>Elevação do Volume (Z)</span><span id="val-z-scale" class="font-mono text-amber-400 font-semibold">1.2x</span></div>
               <input type="range" id="slider-z-scale" min="0.3" max="3.0" step="0.1" value="1.2" class="w-full accent-amber-500 cursor-pointer">
@@ -575,10 +596,17 @@
       container.appendChild(renderer.domElement);
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
+      controls.dampingFactor = 0.07;
       controls.maxPolarAngle = Math.PI / 2 - 0.02;
-      controls.minDistance = 20;
-      controls.maxDistance = 220;
+      controls.minDistance = MIN_CAM_DIST;
+      controls.maxDistance = MAX_CAM_DIST;
+      controls.zoomSpeed = 0.28;
+      controls.enablePan = true;
+      controls.screenSpacePanning = true;
+      controls.panSpeed = 1.15;
+      controls.rotateSpeed = 0.85;
+      if ('zoomToCursor' in controls) controls.zoomToCursor = true;
+      controls.addEventListener('change', syncCameraZoomUI);
       scene.add(new THREE.AmbientLight(0xffffff, 0.65));
       const l1 = new THREE.DirectionalLight(0xffffff, 0.9); l1.position.set(45, 85, 45); scene.add(l1);
       const l2 = new THREE.DirectionalLight(0x818cf8, 0.45); l2.position.set(-50, 40, -40); scene.add(l2);
@@ -591,7 +619,90 @@
       container.addEventListener('mouseleave', () => tooltip.classList.add('hidden'));
       container.addEventListener('pointerdown', onPointerDown);
       container.addEventListener('click', onPointerClick);
+      setMouseDragMode('rotate');
       setCameraPreset('iso');
+    }
+
+    const MIN_CAM_DIST = 14, MAX_CAM_DIST = 220, BASE_CAM_DIST = 98;
+    let mouseDragMode = 'rotate';
+
+    function distToZoomSlider(dist) {
+      const d = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, dist));
+      const ratio = Math.log(d / MAX_CAM_DIST) / Math.log(MIN_CAM_DIST / MAX_CAM_DIST);
+      return Math.round(Math.max(0, Math.min(100, ratio * 100)));
+    }
+
+    function zoomSliderToDist(sliderVal) {
+      const t = Math.max(0, Math.min(100, Number(sliderVal))) / 100;
+      return MAX_CAM_DIST * Math.pow(MIN_CAM_DIST / MAX_CAM_DIST, t);
+    }
+
+    function syncCameraZoomUI() {
+      if (!camera || !controls) return;
+      const dist = camera.position.distanceTo(controls.target);
+      const pctStr = `${Math.round((BASE_CAM_DIST / Math.max(1, dist)) * 100)}%`;
+      const sVal = String(distToZoomSlider(dist));
+      const sMain = document.getElementById('slider-cam-zoom');
+      const sSide = document.getElementById('slider-cam-zoom-side');
+      const vMain = document.getElementById('val-cam-zoom');
+      const vSide = document.getElementById('val-cam-zoom-side');
+      if (sMain && sMain.value !== sVal) sMain.value = sVal;
+      if (sSide && sSide.value !== sVal) sSide.value = sVal;
+      if (vMain && vMain.textContent !== pctStr) vMain.textContent = pctStr;
+      if (vSide && vSide.textContent !== pctStr) vSide.textContent = pctStr;
+    }
+
+    function setCameraZoomFromSlider(sliderVal) {
+      if (!camera || !controls) return;
+      const dist = zoomSliderToDist(sliderVal);
+      const offset = camera.position.clone().sub(controls.target);
+      if (offset.lengthSq() < 1e-6) offset.set(0, 1, 1);
+      offset.setLength(dist);
+      const prevZoomToCursor = controls.zoomToCursor;
+      if ('zoomToCursor' in controls) controls.zoomToCursor = false;
+      camera.position.copy(controls.target).add(offset);
+      controls.update();
+      if ('zoomToCursor' in controls) controls.zoomToCursor = prevZoomToCursor;
+      syncCameraZoomUI();
+    }
+
+    function stepCameraZoom(deltaSlider) {
+      if (!camera || !controls) return;
+      const cur = distToZoomSlider(camera.position.distanceTo(controls.target));
+      setCameraZoomFromSlider(Math.max(0, Math.min(100, cur + deltaSlider)));
+    }
+
+    function setMouseDragMode(mode) {
+      mouseDragMode = mode === 'pan' ? 'pan' : 'rotate';
+      if (controls) {
+        if (mouseDragMode === 'pan') {
+          controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+          controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+          controls.touches.ONE = THREE.TOUCH.PAN;
+        } else {
+          controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+          controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+          controls.touches.ONE = THREE.TOUCH.ROTATE;
+        }
+      }
+      if (container) container.style.cursor = mouseDragMode === 'pan' ? 'move' : 'grab';
+      const bRot = document.getElementById('btn-mouse-rotate');
+      const bPan = document.getElementById('btn-mouse-pan');
+      if (bRot && bPan) {
+        const activeCls = 'py-1 px-1.5 rounded-md bg-indigo-600 text-white font-semibold text-[10px] transition flex items-center justify-center gap-1';
+        const idleCls = 'py-1 px-1.5 rounded-md text-slate-400 hover:text-white font-medium text-[10px] transition flex items-center justify-center gap-1';
+        bRot.className = mouseDragMode === 'rotate' ? activeCls : idleCls;
+        bPan.className = mouseDragMode === 'pan' ? activeCls : idleCls;
+      }
+    }
+
+    function centerCameraTarget() {
+      if (!camera || !controls) return;
+      const offset = camera.position.clone().sub(controls.target);
+      controls.target.set(0, 6, 0);
+      camera.position.copy(controls.target).add(offset);
+      controls.update();
+      syncCameraZoomUI();
     }
 
     function onWindowResize() {
@@ -607,6 +718,7 @@
       else if (preset === 'top') { camera.position.set(0, 92, 0.01); controls.target.set(0, 0, 0); }
       else if (preset === 'side') { camera.position.set(88, 18, 0); controls.target.set(0, 8, 0); }
       controls.update();
+      syncCameraZoomUI();
     }
 
     function getThermalColor(t) {
@@ -2389,8 +2501,8 @@
           const cur = tradeGroupRefs.find((g) => g.userData.trade && g.userData.trade.id === hovered);
           if (cur) setTradeHighlight(cur, true);
         }
-        container.style.cursor = hovered ? 'pointer' : 'grab';
       }
+      container.style.cursor = hovered ? 'pointer' : (mouseDragMode === 'pan' ? 'move' : 'grab');
       const hits = raycaster.intersectObjects(interactiveMeshes, false);
       if (!hits.length) { tooltip.classList.add('hidden'); return; }
       const obj = hits[0].object;
@@ -2847,6 +2959,43 @@
       document.getElementById('btn-cam-iso').addEventListener('click', () => setCameraPreset('iso'));
       document.getElementById('btn-cam-top').addEventListener('click', () => setCameraPreset('top'));
       document.getElementById('btn-cam-side').addEventListener('click', () => setCameraPreset('side'));
+      document.getElementById('slider-cam-zoom').addEventListener('input', (e) => setCameraZoomFromSlider(e.target.value));
+      document.getElementById('slider-cam-zoom-side').addEventListener('input', (e) => setCameraZoomFromSlider(e.target.value));
+      document.getElementById('btn-zoom-in').addEventListener('click', () => stepCameraZoom(6));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => stepCameraZoom(-6));
+      document.getElementById('btn-mouse-rotate').addEventListener('click', () => setMouseDragMode('rotate'));
+      document.getElementById('btn-mouse-pan').addEventListener('click', () => setMouseDragMode('pan'));
+      document.getElementById('btn-cam-center').addEventListener('click', () => centerCameraTarget());
+      window.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          stepCameraZoom(5);
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          stepCameraZoom(-5);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          if (!camera || !controls) return;
+          e.preventDefault();
+          const step = Math.max(1.5, camera.position.distanceTo(controls.target) * 0.05);
+          const forward = new THREE.Vector3();
+          camera.getWorldDirection(forward);
+          forward.y = 0;
+          if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+          forward.normalize();
+          const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+          const delta = new THREE.Vector3();
+          if (e.key === 'ArrowRight') delta.addScaledVector(right, step);
+          else if (e.key === 'ArrowLeft') delta.addScaledVector(right, -step);
+          else if (e.key === 'ArrowUp') delta.addScaledVector(forward, step);
+          else if (e.key === 'ArrowDown') delta.addScaledVector(forward, -step);
+          controls.target.add(delta);
+          camera.position.add(delta);
+          controls.update();
+          syncCameraZoomUI();
+        }
+      });
       document.getElementById('csv-file-input').addEventListener('change', (e) => {
         const files = Array.from(e.target.files); if (!files.length) return;
         manualCsvMode = true;
@@ -2995,7 +3144,7 @@
     const DEFAULT_CARD_STYLES = {
       resumo: { top: '12px', left: '12px', right: 'auto', bottom: 'auto', width: '246px', height: '' },
       fluxo: { top: '186px', left: '12px', right: 'auto', bottom: 'auto', width: '274px', height: '' },
-      camera: { top: '12px', left: 'auto', right: '12px', bottom: 'auto', width: '', height: '' },
+      camera: { top: '12px', left: 'auto', right: '12px', bottom: 'auto', width: '178px', height: '' },
       legenda: { top: 'auto', left: '12px', right: 'auto', bottom: '12px', width: '', height: '' },
       pip: { top: 'auto', left: 'auto', right: '12px', bottom: '12px', width: '376px', height: '' },
     };
