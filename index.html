@@ -426,11 +426,12 @@
               <button id="fib-golden" type="button" title="Ancora automaticamente P1 → P2 → P3 no swing recente do Mini-Gráfico" class="py-2 px-1 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1">Auto ABC</button>
             </div>
             <div class="flex flex-wrap gap-1">
-              <button class="fib-level cv-active-chip" data-level="0.382">38.2%</button>
+              <button class="fib-level cv-active-chip" data-level="0.0">0%</button>
+              <button class="fib-level" data-level="0.382">38.2%</button>
               <button class="fib-level cv-active-chip" data-level="0.5">50%</button>
               <button class="fib-level cv-active-chip" data-level="0.618">61.8%</button>
               <button class="fib-level cv-active-chip" data-level="1.0">100%</button>
-              <button class="fib-level" data-level="1.272">127.2%</button>
+              <button class="fib-level cv-active-chip" data-level="1.272">127.2%</button>
               <button class="fib-level" data-level="1.618">161.8%</button>
             </div>
             <div class="space-y-1.5">
@@ -496,10 +497,11 @@
     const SESSION_START = 540, SESSION_END = 1115;
     const COLORS = { gain: 0x00ff88, stop: 0xff3366, active: 0x22d3ee, buy: 0x0088ff, sell: 0xff1e42, gold: 0xffd700, buyPastel: 0x55718f, sellPastel: 0x9a6a6a, gray: 0x666666, path: 0x6366f1 };
     const FIB_LEVELS = [
+      { key: '0.0', label: '0%', value: 0.0, color: 0x94a3b8 },
       { key: '0.382', label: '38.2%', value: 0.382, color: 0x38bdf8 },
       { key: '0.5', label: '50%', value: 0.5, color: 0x818cf8 },
       { key: '0.618', label: '61.8%', value: 0.618, color: 0xc084fc },
-      { key: '1.0', label: '100%', value: 1.0, color: 0xe2e8f0 },
+      { key: '1.0', label: '100%', value: 1.0, color: 0x34d399 },
       { key: '1.272', label: '127.2%', value: 1.272, color: 0xfbbf24 },
       { key: '1.618', label: '161.8% Φ', value: 1.618, color: 0xffd700 },
     ];
@@ -548,7 +550,7 @@
     let fibTool = 'none';
     let fibAxis = 'volume';
     let fibAnchors = [];
-    let fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
+    let fibLevels = new Set(['0.0', '0.5', '0.618', '1.0', '1.272']);
     let fibOpacity = 0.4;
     let pipFibPoints = [];
     let pipFibHover = null;
@@ -1662,13 +1664,18 @@
         : [...pipFibPoints];
       if (pts.length < 2) return { pts, levels: [], retracePct: null, mode: fibTool };
       const p1 = pts[0], p2 = pts[1], p3 = pts[2] || null;
+      const isRetrace = fibTool === 'retrace';
       const legA = p2.price - p1.price;
-      const isRetrace = fibTool === 'retrace' || !p3;
       const retracePct = p3 && Math.abs(legA) > 1e-9 ? Math.abs((p3.price - p2.price) / legA) * 100 : null;
+      const base0 = p1.price;
+      const mid50 = p3 ? p3.price : p2.price;
+      const abcSpan100 = (mid50 - base0) * 2;
       const levels = [];
       for (const lv of FIB_LEVELS) {
         if (!fibLevels.has(lv.key)) continue;
-        const targetPrice = isRetrace ? (p2.price - lv.value * legA) : (p3.price + lv.value * legA);
+        const targetPrice = isRetrace
+          ? (p1.price + lv.value * (p2.price - p1.price))
+          : (base0 + lv.value * abcSpan100);
         levels.push({ ...lv, price: targetPrice, conf: sampleVolumeConfluenceAtPrice(targetPrice) });
       }
       return { pts, levels, retracePct, mode: isRetrace ? 'retrace' : 'extension' };
@@ -1681,14 +1688,16 @@
       const dec = getPriceDecimals(scale.maxPrice);
       const data = computeActiveFibTargets();
       if (data.pts.length < 2) {
-        legEl.textContent = pipFibPoints.length === 1 ? 'P1 definido · Clique P2' : '3 pts no Mini-Gráfico';
-        rowsEl.innerHTML = '<div class="text-[9.5px] text-slate-500 leading-relaxed">Use <b>Fibo 3P</b> ou <b>Auto</b> no Mini-Gráfico (<b>P1</b>=Início A, <b>P2</b>=Fim A, <b>P3</b>=Fim B) para projetar a Perna C e cruzar cada alvo com os <b>Cumes</b> (defesa/POC) e <b>Vales</b> (vácuo livre) do Volume 3D.</div>';
+        legEl.textContent = pipFibPoints.length === 1 ? 'P1 (0%) definido · Clique P2' : '3 pts no Mini-Gráfico';
+        rowsEl.innerHTML = '<div class="text-[9.5px] text-slate-500 leading-relaxed">Use <b>Fibo 3P</b> ou <b>Auto</b> no Mini-Gráfico (<b>P1</b>=0% Início A, <b>P2</b>=Fim A, <b>P3</b>=50% Fim B) para projetar <b>100%–127.2%</b> e cruzar com os <b>Cumes</b> e <b>Vales</b> do Volume 3D.</div>';
         return;
       }
       const p1 = data.pts[0], p2 = data.pts[1], p3 = data.pts[2];
-      legEl.textContent = p3
-        ? `A:${fmtPrice(p1.price, dec)}→${fmtPrice(p2.price, dec)} · B:${fmtPrice(p3.price, dec)} (${data.retracePct != null ? data.retracePct.toFixed(0) + '%' : ''})`
-        : `${fmtPrice(p1.price, dec)} → ${fmtPrice(p2.price, dec)}`;
+      legEl.textContent = data.mode === 'retrace'
+        ? `Retração: ${fmtPrice(p1.price, dec)} (0%) → ${fmtPrice(p2.price, dec)} (100%)`
+        : p3
+          ? `0%:${fmtPrice(p1.price, dec)} · A:${fmtPrice(p2.price, dec)} · 50%:${fmtPrice(p3.price, dec)}`
+          : `0%:${fmtPrice(p1.price, dec)} → 50%:${fmtPrice(p2.price, dec)}`;
       if (!data.levels.length) {
         rowsEl.innerHTML = '<div class="text-[9.5px] text-slate-500">Selecione ao menos um nível (%) acima.</div>';
         return;
@@ -1702,49 +1711,78 @@
       }).join('');
     }
 
-    function autoAnchorPipFib() {
-      const bars = getPipBars();
-      if (bars.length < 10) {
-        showToast('Aguardando mais candles no Mini-Gráfico para Auto ABC.', true);
-        return;
+    function detectPipABCWave(bars) {
+      if (!bars || bars.length < 10) return null;
+      const n = bars.length;
+      const t0 = bars[0].time, t1 = bars[n - 1].time;
+      for (let i = pivots.length - 1; i >= 0; i--) {
+        const pv = pivots[i];
+        if (!matchesCurrentSymbol(pv.symbol)) continue;
+        const pO = pv.o || pv.a;
+        const pA = pv.o ? pv.a : pv.b;
+        const pB = pv.o ? pv.b : pv.c;
+        const pC = pv.c;
+        if (pB.t >= t0 && pO.t <= t1) {
+          return {
+            p1: { time: pO.t, price: pO.p, minuteOfDay: pO.m },
+            p2: { time: pA.t, price: pA.p, minuteOfDay: pA.m },
+            p3: { time: pB.t, price: pB.p, minuteOfDay: pB.m },
+            pC: pC ? { time: pC.t, price: pC.p, minuteOfDay: pC.m } : null,
+            direction: pv.direction,
+            scenario: pv.scenario || 'ABC',
+          };
+        }
       }
-      const scanEnd = Math.max(4, Math.floor(bars.length * 0.82));
-      let idxLow = 0, idxHigh = 0;
-      for (let i = 1; i < scanEnd; i++) {
+      const scanStart = Math.max(0, n - 75);
+      const scanAEnd = Math.max(scanStart + 6, Math.floor(n * 0.78));
+      let idxLow = scanStart, idxHigh = scanStart;
+      for (let i = scanStart + 1; i < scanAEnd; i++) {
         if (bars[i].low < bars[idxLow].low) idxLow = i;
         if (bars[i].high > bars[idxHigh].high) idxHigh = i;
       }
-      let p1Bar, p1Price, p2Bar, p2Price, idxB;
-      if (idxLow < idxHigh) {
-        p1Bar = bars[idxLow]; p1Price = p1Bar.low;
-        p2Bar = bars[idxHigh]; p2Price = p2Bar.high;
-        idxB = idxHigh + 1;
-        for (let i = idxHigh + 2; i < bars.length; i++) {
-          if (bars[i].low < bars[idxB].low) idxB = i;
+      if (idxLow === idxHigh) idxHigh = Math.min(n - 3, idxLow + 5);
+      const upA = idxLow < idxHigh;
+      const i1 = upA ? idxLow : idxHigh;
+      const i2 = upA ? idxHigh : idxLow;
+      const p1Price = upA ? bars[i1].low : bars[i1].high;
+      const p2Price = upA ? bars[i2].high : bars[i2].low;
+      const legA = p2Price - p1Price;
+      const bEnd = Math.min(n - 2, i2 + Math.max(4, Math.floor((n - i2) * 0.75)));
+      let i3 = Math.min(n - 2, i2 + 1);
+      for (let i = i2 + 1; i <= bEnd; i++) {
+        if (upA) {
+          if (bars[i].low < bars[i3].low && bars[i].low > p1Price) i3 = i;
+        } else {
+          if (bars[i].high > bars[i3].high && bars[i].high < p1Price) i3 = i;
         }
-        const p3Bar = bars[Math.min(bars.length - 1, idxB)];
-        pipFibPoints = [
-          { time: p1Bar.time, price: p1Price, minuteOfDay: p1Bar.minuteOfDay },
-          { time: p2Bar.time, price: p2Price, minuteOfDay: p2Bar.minuteOfDay },
-          { time: p3Bar.time, price: p3Bar.low, minuteOfDay: p3Bar.minuteOfDay },
-        ];
-      } else {
-        p1Bar = bars[idxHigh]; p1Price = p1Bar.high;
-        p2Bar = bars[idxLow]; p2Price = p2Bar.low;
-        idxB = idxLow + 1;
-        for (let i = idxLow + 2; i < bars.length; i++) {
-          if (bars[i].high > bars[idxB].high) idxB = i;
-        }
-        const p3Bar = bars[Math.min(bars.length - 1, idxB)];
-        pipFibPoints = [
-          { time: p1Bar.time, price: p1Price, minuteOfDay: p1Bar.minuteOfDay },
-          { time: p2Bar.time, price: p2Price, minuteOfDay: p2Bar.minuteOfDay },
-          { time: p3Bar.time, price: p3Bar.high, minuteOfDay: p3Bar.minuteOfDay },
-        ];
       }
+      let p3Price = upA ? bars[i3].low : bars[i3].high;
+      const minB = Math.min(p1Price + legA * 0.25, p1Price + legA * 0.75);
+      const maxB = Math.max(p1Price + legA * 0.25, p1Price + legA * 0.75);
+      if (p3Price < minB || p3Price > maxB) p3Price = p1Price + legA * 0.5;
+      const base0 = p1Price, mid50 = p3Price, span100 = (mid50 - base0) * 2;
+      const target100 = base0 + 1.0 * span100;
+      return {
+        p1: { time: bars[i1].time, price: p1Price, minuteOfDay: bars[i1].minuteOfDay },
+        p2: { time: bars[i2].time, price: p2Price, minuteOfDay: bars[i2].minuteOfDay },
+        p3: { time: bars[i3].time, price: p3Price, minuteOfDay: bars[i3].minuteOfDay },
+        pC: { time: bars[n - 1].time, price: target100, minuteOfDay: bars[n - 1].minuteOfDay },
+        direction: upA ? 'compra' : 'venda',
+        scenario: 'ABC Ao Vivo',
+      };
+    }
+
+    function autoAnchorPipFib() {
+      const bars = getPipBars();
+      const abc = detectPipABCWave(bars);
+      if (!abc) {
+        showToast('Aguardando mais candles no Mini-Gráfico para Auto ABC.', true);
+        return;
+      }
+      pipFibPoints = [abc.p1, abc.p2, abc.p3];
       fibTool = 'none';
       fibAutoActive = true;
-      if (!fibLevels.size) fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
+      fibLevels = new Set(['0.0', '0.5', '0.618', '1.0', '1.272']);
       pipFibHover = null;
       const acc = document.getElementById('acc-fib');
       if (acc) acc.open = true;
@@ -1752,7 +1790,7 @@
       updateFibDiagnosisUI();
       renderPiP();
       renderOverlay();
-      showToast('Fibo 3P ancorado (P1 → P2 → P3) com Confluência de Volume 3D.');
+      showToast('ABC projetado (0% → A → B 50% → alvo C 100%–127.2%).');
     }
 
     function renderFibonacci() {
@@ -1980,7 +2018,20 @@
         if (piv.c.m < scale.minMin || piv.c.m > scale.maxMin) continue;
         visible.push(piv);
       }
-      const sliceVis = visible.slice(-80);
+      let sliceVis = visible.slice(-2);
+      if (!sliceVis.length) {
+        const abc = detectPipABCWave(getPipBars());
+        if (abc && abc.pC) {
+          sliceVis = [{
+            o: { t: abc.p1.time, m: abc.p1.minuteOfDay, p: abc.p1.price },
+            a: { t: abc.p2.time, m: abc.p2.minuteOfDay, p: abc.p2.price },
+            b: { t: abc.p3.time, m: abc.p3.minuteOfDay, p: abc.p3.price },
+            c: { t: abc.pC.time, m: abc.pC.minuteOfDay, p: abc.pC.price },
+            direction: abc.direction,
+            result: 'active',
+          }];
+        }
+      }
       const labelStart = Math.max(0, sliceVis.length - 20);
       sliceVis.forEach((piv, wIdx) => {
         const rawPts = piv.o ? [piv.o, piv.a, piv.b, piv.c] : [piv.a, piv.b, piv.c];
@@ -2375,10 +2426,27 @@
       for (const b of bars) { if (b.low < lo) lo = b.low; if (b.high > hi) hi = b.high; }
       const origRange = (hi - lo) || 1;
       const fibData = computeActiveFibTargets(pipFibHover);
-      if (fibData.pts.length >= 1) {
+      const abcWave = (showABC && pipFibPoints.length === 0 && fibTool === 'none') ? detectPipABCWave(bars) : null;
+      const abcRatios = [
+        { key: '0.0', label: '0%', value: 0.0, color: '#94a3b8' },
+        { key: '0.5', label: '50%', value: 0.5, color: '#818cf8' },
+        { key: '0.618', label: '61.8%', value: 0.618, color: '#c084fc' },
+        { key: '1.0', label: '100%', value: 1.0, color: '#00ff88' },
+        { key: '1.272', label: '127.2%', value: 1.272, color: '#fbbf24' },
+      ];
+      let abcLevels = [];
+      if (abcWave) {
+        const b0 = abcWave.p1.price, m50 = abcWave.p3.price, sp = (m50 - b0) * 2;
+        abcLevels = abcRatios.map((r) => ({ ...r, price: b0 + r.value * sp }));
+      }
+      if (fibData.pts.length >= 1 || abcWave) {
         let expLo = lo, expHi = hi;
         for (const p of fibData.pts) { if (p.price < expLo) expLo = p.price; if (p.price > expHi) expHi = p.price; }
         for (const lv of fibData.levels) { if (lv.price < expLo) expLo = lv.price; if (lv.price > expHi) expHi = lv.price; }
+        if (abcWave) {
+          for (const p of [abcWave.p1, abcWave.p2, abcWave.p3]) { if (p.price < expLo) expLo = p.price; if (p.price > expHi) expHi = p.price; }
+          for (const lv of abcLevels) { if (lv.price < expLo) expLo = lv.price; if (lv.price > expHi) expHi = lv.price; }
+        }
         if ((expHi - expLo) <= origRange * 6) {
           const pad = (expHi - expLo) * 0.04;
           lo = expLo - pad;
@@ -2538,25 +2606,101 @@
       }
 
       const dec = getPriceDecimals(hi);
+      const findPipBarX = (pt) => {
+        if (!pt || pt.time == null) return padL + cw / 2;
+        if (pipTimeframe === 'D1') {
+          const k = localDateKey(pt.time);
+          const i = bars.findIndex((b) => localDateKey(b.time) === k);
+          if (i !== -1) return padL + i * cw + cw / 2;
+        }
+        if (pt.time <= bars[0].time) return padL + cw / 2;
+        let found = 0;
+        for (let i = 0; i < bars.length; i++) {
+          if (bars[i].time <= pt.time) found = i;
+          else break;
+        }
+        return Math.max(padL + 2, Math.min(W - padR - 2, padL + found * cw + cw / 2));
+      };
+      const placePillNonOverlap = (usedBoxes, desiredY, tw) => {
+        let bx = Math.max(padL + 2, W - padR - tw - 2);
+        let by = Math.max(padT + 2, Math.min(H - padB - 12, desiredY - 11));
+        for (const u of usedBoxes) {
+          if (Math.abs(by - u.y) < 11 && bx < u.x + u.w + 4 && bx + tw > u.x - 4) {
+            const shiftedX = u.x - tw - 4;
+            if (shiftedX >= padL + 2) bx = shiftedX;
+            else by = Math.max(padT + 2, Math.min(H - padB - 12, by + (by > H / 2 ? -12 : 12)));
+          }
+        }
+        usedBoxes.push({ x: bx, y: by, w: tw });
+        return { bx, by };
+      };
+      if (abcWave) {
+        const ax1 = findPipBarX(abcWave.p1), ay1 = Math.max(padT + 4, Math.min(H - padB - 4, py(abcWave.p1.price)));
+        const ax2 = findPipBarX(abcWave.p2), ay2 = Math.max(padT + 4, Math.min(H - padB - 4, py(abcWave.p2.price)));
+        const ax3 = findPipBarX(abcWave.p3), ay3 = Math.max(padT + 4, Math.min(H - padB - 4, py(abcWave.p3.price)));
+        const lv100 = abcLevels.find((l) => l.key === '1.0');
+        const lv127 = abcLevels.find((l) => l.key === '1.272');
+        if (lv100 && lv127) {
+          const yA = py(lv100.price), yB = py(lv127.price);
+          ctx.fillStyle = 'rgba(0, 255, 136, 0.09)';
+          ctx.fillRect(ax3, Math.min(yA, yB), Math.max(4, (W - padR) - ax3), Math.abs(yB - yA));
+        }
+        const usedAbcBoxes = [];
+        abcLevels.forEach((lv) => {
+          const yL = py(lv.price);
+          if (yL < padT - 4 || yL > H - padB + 4) return;
+          ctx.strokeStyle = lv.color;
+          ctx.lineWidth = (lv.key === '1.0' || lv.key === '1.272') ? 1.3 : 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(lv.key === '0.0' ? ax1 : ax3, yL);
+          ctx.lineTo(W - padR, yL);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          const txt = `${lv.label} ${fmtPrice(lv.price, dec)}`;
+          ctx.font = '700 8px monospace';
+          const tw = ctx.measureText(txt).width + 6;
+          const pos = placePillNonOverlap(usedAbcBoxes, yL, tw);
+          ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+          ctx.fillRect(pos.bx, pos.by, tw, 11);
+          ctx.fillStyle = lv.color;
+          ctx.textAlign = 'left';
+          ctx.fillText(txt, pos.bx + 3, pos.by + 8.5);
+        });
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 1.9;
+        ctx.beginPath();
+        ctx.moveTo(ax1, ay1);
+        ctx.lineTo(ax2, ay2);
+        ctx.lineTo(ax3, ay3);
+        ctx.stroke();
+        const cX = Math.min(W - padR - 8, Math.max(ax3 + 16, ax3 + Math.abs(ax2 - ax1)));
+        const cY = lv100 ? Math.max(padT + 6, Math.min(H - padB - 6, py(lv100.price))) : ay3;
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(ax3, ay3);
+        ctx.lineTo(cX, cY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        [[ax1, ay1, '0 (0%)'], [ax2, ay2, 'A'], [ax3, ay3, 'B (50%)'], [cX, cY, 'C']].forEach(([px, py0, lbl], vi) => {
+          ctx.fillStyle = vi === 3 ? '#34d399' : '#00ff88';
+          ctx.strokeStyle = '#020617';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(px, py0, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.font = '700 8.5px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(lbl, Math.max(padL + 16, Math.min(W - padR - 14, px)), py0 > padT + 14 ? py0 - 6 : py0 + 13);
+        });
+      }
       if (fibTool !== 'none' || pipFibPoints.length > 0) {
-        const findFibX = (pt) => {
-          if (!pt || pt.time == null) return padL + cw / 2;
-          if (pipTimeframe === 'D1') {
-            const k = localDateKey(pt.time);
-            const i = bars.findIndex((b) => localDateKey(b.time) === k);
-            if (i !== -1) return padL + i * cw + cw / 2;
-          }
-          if (pt.time <= bars[0].time) return padL + cw / 2;
-          let found = 0;
-          for (let i = 0; i < bars.length; i++) {
-            if (bars[i].time <= pt.time) found = i;
-            else break;
-          }
-          return Math.max(padL + 2, Math.min(W - padR - 2, padL + found * cw + cw / 2));
-        };
         const fPts = fibData.pts.map((pt, idx) => ({
           idx,
-          x: findFibX(pt),
+          x: findPipBarX(pt),
           y: Math.max(padT + 4, Math.min(H - padB - 4, py(pt.price))),
           price: pt.price,
         }));
@@ -2591,28 +2735,45 @@
             }
           }
           const xStart = fPts.length >= 3 ? fPts[2].x : fPts[0].x;
+          if (fibData.mode === 'extension') {
+            const l100 = fibData.levels.find((l) => l.key === '1.0');
+            const l127 = fibData.levels.find((l) => l.key === '1.272');
+            if (l100 && l127) {
+              const yA = py(l100.price), yB = py(l127.price);
+              ctx.fillStyle = 'rgba(52, 211, 153, 0.11)';
+              ctx.fillRect(xStart, Math.min(yA, yB), Math.max(4, (W - padR) - xStart), Math.abs(yB - yA));
+            }
+          } else {
+            const l50 = fibData.levels.find((l) => l.key === '0.5');
+            const l618 = fibData.levels.find((l) => l.key === '0.618');
+            if (l50 && l618) {
+              const yA = py(l50.price), yB = py(l618.price);
+              ctx.fillStyle = 'rgba(192, 132, 252, 0.11)';
+              ctx.fillRect(xStart, Math.min(yA, yB), Math.max(4, (W - padR) - xStart), Math.abs(yB - yA));
+            }
+          }
+          const usedFibBoxes = [];
           fibData.levels.forEach((lv) => {
             const yL = py(lv.price);
             if (yL < padT - 4 || yL > H - padB + 4) return;
             const col = hexStr(lv.color);
             ctx.strokeStyle = col;
-            ctx.lineWidth = lv.key === '1.0' || lv.key === '1.618' ? 1.4 : 1;
+            ctx.lineWidth = lv.key === '1.0' || lv.key === '1.272' ? 1.4 : 1;
             ctx.setLineDash([4, 3]);
             ctx.beginPath();
-            ctx.moveTo(xStart, yL);
+            ctx.moveTo(lv.key === '0.0' ? fPts[0].x : xStart, yL);
             ctx.lineTo(W - padR, yL);
             ctx.stroke();
             ctx.setLineDash([]);
             const badgeText = `${lv.label} ${fmtPrice(lv.price, dec)} ${lv.conf.badge}`;
             ctx.font = '700 8px monospace';
             const tw = ctx.measureText(badgeText).width + 8;
-            const bx = Math.max(padL + 2, W - padR - tw - 2);
-            const by = Math.max(padT + 2, Math.min(H - padB - 12, yL - 11));
+            const pos = placePillNonOverlap(usedFibBoxes, yL, tw);
             ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
-            ctx.fillRect(bx, by, tw, 11);
+            ctx.fillRect(pos.bx, pos.by, tw, 11);
             ctx.fillStyle = lv.conf.color;
             ctx.textAlign = 'left';
-            ctx.fillText(badgeText, bx + 4, by + 8.5);
+            ctx.fillText(badgeText, pos.bx + 4, pos.by + 8.5);
           });
         }
         fPts.forEach((fp, idx) => {
@@ -2625,20 +2786,26 @@
           ctx.arc(fp.x, fp.y, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
-          const lbl = idx === 2 && fibData.retracePct != null ? `P3 (${Math.round(fibData.retracePct)}%)` : `P${idx + 1}`;
+          const lbl = idx === 0
+            ? 'P1 (0%)'
+            : idx === 1
+              ? (fibData.mode === 'retrace' ? 'P2 (100%)' : 'P2 (A)')
+              : 'P3 (B·50%)';
           ctx.font = '700 8.5px monospace';
           ctx.fillStyle = pCol;
           ctx.textAlign = 'center';
           const yOff = fp.y > padT + 14 ? fp.y - 6 : fp.y + 13;
-          ctx.fillText(lbl, Math.max(padL + 16, Math.min(W - padR - 16, fp.x)), yOff);
+          ctx.fillText(lbl, Math.max(padL + 20, Math.min(W - padR - 20, fp.x)), yOff);
         });
         const reqPts = fibTool === 'retrace' ? 2 : 3;
         if (fibTool !== 'none' && pipFibPoints.length < reqPts) {
-          const stepTxt = pipFibPoints.length === 0
-            ? 'Clique P1 (Início Perna A)'
-            : pipFibPoints.length === 1
-              ? 'Clique P2 (Fim Perna A)'
-              : 'Clique P3 (Fim Retorno B → Projetar C)';
+          const stepTxt = fibTool === 'retrace'
+            ? (pipFibPoints.length === 0 ? 'Clique P1 (0%)' : 'Clique P2 (100%)')
+            : (pipFibPoints.length === 0
+              ? 'Clique P1 (0% Início A)'
+              : pipFibPoints.length === 1
+                ? 'Clique P2 (Fim Perna A)'
+                : 'Clique P3 (50% Fim B → Projetar C)');
           ctx.font = '600 9px Inter, sans-serif';
           const sw = ctx.measureText(stepTxt).width + 12;
           ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
@@ -3291,7 +3458,7 @@
       document.getElementById('toggle-intrabar').addEventListener('change', (e) => { showIntraBar = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-poc').addEventListener('change', (e) => { showPOC = e.target.checked; updateVisualization(); });
       document.getElementById('toggle-ma').addEventListener('change', (e) => { showMA = e.target.checked; updateVisualization(); });
-      document.getElementById('toggle-abc').addEventListener('change', (e) => { showABC = e.target.checked; renderOverlay(); });
+      document.getElementById('toggle-abc').addEventListener('change', (e) => { showABC = e.target.checked; pipDirty = true; renderPiP(); renderOverlay(); });
       document.getElementById('toggle-trail').addEventListener('change', (e) => { showTrail = e.target.checked; renderOverlay(); });
       document.getElementById('toggle-liquidity').addEventListener('change', (e) => { simulateLiquidity = e.target.checked; if (simulateLiquidity) startLiquiditySim(); else stopLiquiditySim(); });
       document.getElementById('preset-day').addEventListener('click', () => { activePresetDays = 2; activePresetId = 'preset-day'; setDatePreset(2); stylePreset('preset-day'); updateVisualization(); });
@@ -3463,16 +3630,14 @@
       fibAnchors = [];
       pipFibPoints = [];
       pipFibHover = null;
-      if (tool === 'retrace') fibLevels = new Set(['0.382', '0.5', '0.618', '1.0']);
-      else if (tool === 'extension') fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
-      else if (tool === 'golden') fibLevels = new Set(['0.618', '1.618']);
-      else fibLevels = new Set(['0.618', '1.0', '1.272', '1.618']);
+      if (tool === 'retrace') fibLevels = new Set(['0.0', '0.5', '0.618', '1.0']);
+      else fibLevels = new Set(['0.0', '0.5', '0.618', '1.0', '1.272']);
       syncFibUI();
       updateFibDiagnosisUI();
       renderPiP();
       renderOverlay();
-      if (tool === 'extension') showToast('Fibo 3P ativo — clique P1 (Início A), P2 (Fim A) e P3 (Fim B) no Mini-Gráfico.');
-      else if (tool === 'retrace') showToast('Retração 2P ativa — clique P1 e P2 no Mini-Gráfico.');
+      if (tool === 'extension') showToast('Fibo 3P ativo — marque P1 (0% Início A), P2 (Fim A) e P3 (50% Fim B).');
+      else if (tool === 'retrace') showToast('Retração 2P ativa — marque 0% (P1) até 100% (P2) para ver 50% e 61.8%.');
     }
 
     function setFibAxis(axis) {
