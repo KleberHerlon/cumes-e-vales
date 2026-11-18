@@ -40,6 +40,16 @@
     .fib-level:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
     .fib-level.cv-active-chip { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
     select option { background: #0f172a; color: #e2e8f0; }
+    .cv-floating-card { position: absolute; z-index: 15; user-select: none; box-shadow: 0 12px 32px rgba(2,6,23,0.7); transition: border-color .15s ease; }
+    .cv-floating-card:hover { border-color: rgba(99,102,241,0.45); }
+    .cv-floating-card.cv-dragging { border-color: rgba(129,140,248,0.85); box-shadow: 0 18px 42px rgba(2,6,23,0.85); }
+    .cv-drag-handle { cursor: move; touch-action: none; }
+    .cv-resize-handle { position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; cursor: nwse-resize; touch-action: none; opacity: 0.55; transition: opacity .15s ease; display: flex; align-items: flex-end; justify-content: flex-end; padding: 2px; }
+    .cv-resize-handle:hover { opacity: 1; }
+    .cv-resize-handle::after { content: ''; width: 7px; height: 7px; border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8; border-bottom-right-radius: 2px; }
+    .cv-card-collapsed .cv-card-body,
+    .cv-card-collapsed .cv-resize-handle { display: none !important; }
+    .cv-card-collapsed { width: auto !important; height: auto !important; min-width: 170px; }
   </style>
 </head>
 <body class="bg-dark-950 text-slate-100 h-screen overflow-hidden flex flex-col select-none">
@@ -59,6 +69,9 @@
     </div>
     <div class="flex items-center space-x-2">
       <span id="badge-dataset" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium"><span id="ws-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span id="badge-text">Conectando ao mercado…</span></span>
+      <button id="btn-reset-layout" title="Restaurar posição e tamanho padrão dos cards" class="px-2.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium rounded-lg transition flex items-center gap-1.5">
+        <i class="fa-solid fa-up-down-left-right text-indigo-400"></i><span class="hidden sm:inline">Resetar Cards</span>
+      </button>
       <label class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg cursor-pointer transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
         <i class="fa-solid fa-file-csv"></i><span>Carregar CSV</span>
         <input type="file" id="csv-file-input" accept=".csv,.txt" multiple class="hidden">
@@ -68,14 +81,17 @@
 
   <div class="flex-1 relative flex flex-col lg:flex-row overflow-hidden">
 
-    <div id="canvas-container" class="flex-1 relative bg-dark-950 cursor-grab active:cursor-grabbing min-h-[320px]">
+    <div id="canvas-container" class="flex-1 relative bg-dark-950 cursor-grab active:cursor-grabbing min-h-[320px] overflow-hidden">
 
-      <div class="absolute top-3 left-3 z-10 pointer-events-auto flex flex-col gap-1.5 max-h-[calc(100%-94px)] overflow-y-auto pr-1">
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1 min-w-[220px]">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-1">
-            <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-chart-area text-indigo-400"></i> Resumo do Mapa</span>
-            <span id="badge-mode" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Atlas Liquidez</span>
+      <div id="card-resumo" data-card-id="resumo" data-resize="w" style="top:12px; left:12px; width:246px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl text-xs flex flex-col gap-1">
+        <div class="cv-drag-handle flex items-center justify-between border-b border-slate-800 pb-1 gap-1.5">
+          <span class="text-slate-300 font-semibold flex items-center gap-1.5 truncate"><i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i><i class="fa-solid fa-chart-area text-indigo-400"></i> Resumo do Mapa</span>
+          <div class="flex items-center gap-1 shrink-0">
+            <span id="badge-mode" class="text-[9.5px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Atlas Liquidez</span>
+            <button type="button" class="cv-collapse-btn w-5 h-5 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
           </div>
+        </div>
+        <div class="cv-card-body flex flex-col gap-1">
           <div class="flex justify-between"><span class="text-slate-400">Registros:</span><span id="stat-points" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Amplitude de Preço:</span><span id="stat-price-range" class="font-mono font-semibold text-slate-200">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Pico POC (Máx Vol):</span><span id="stat-poc" class="font-mono font-semibold text-amber-400">0</span></div>
@@ -83,16 +99,21 @@
           <div class="flex justify-between"><span class="text-slate-400">Operações:</span><span id="stat-abc" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Datas:</span><span id="stat-period" class="font-mono font-semibold text-cyan-300">—</span></div>
         </div>
+        <div class="cv-resize-handle" title="Redimensionar"></div>
+      </div>
 
-        <div class="bg-dark-900/90 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 w-[262px]">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 gap-1">
-            <span class="text-slate-200 font-semibold flex items-center gap-1.5 text-[11px]"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
+      <div id="card-fluxo" data-card-id="fluxo" data-resize="w" style="top:186px; left:12px; width:274px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 p-2.5 rounded-xl text-xs flex flex-col gap-1.5">
+        <div class="cv-drag-handle flex items-center justify-between border-b border-slate-800 pb-1.5 gap-1">
+          <span class="text-slate-200 font-semibold flex items-center gap-1.5 text-[11px] shrink-0"><i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
+          <div class="flex items-center gap-1 flex-wrap justify-end">
             <div id="poc-selector-pills" class="flex items-center gap-1 flex-wrap justify-end"></div>
+            <button type="button" class="cv-collapse-btn w-5 h-5 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
           </div>
-
-          <div class="flex items-center justify-between text-[10px] bg-slate-950/75 border border-amber-500/25 rounded-lg px-2 py-1">
-            <span id="an-poc-target" class="font-mono font-bold text-amber-300">POC #1 @ —</span>
-            <span id="an-poc-vol-badge" class="font-mono text-slate-300">Vol: —</span>
+        </div>
+        <div class="cv-card-body flex flex-col gap-1.5">
+          <div class="flex items-center justify-between gap-2 text-[10px] bg-slate-950/75 border border-amber-500/25 rounded-lg px-2 py-1">
+            <span id="an-poc-target" class="font-mono font-bold text-amber-300 truncate">POC #1 @ —</span>
+            <span id="an-poc-vol-badge" class="font-mono text-slate-300 shrink-0">Vol: —</span>
           </div>
 
           <div class="bg-slate-950/60 border border-slate-800/80 rounded-lg px-2 py-1.5 flex flex-col gap-1">
@@ -132,41 +153,55 @@
             <div class="flex justify-between"><span class="text-slate-400">Ader. Φ:</span><span id="an-phi-score" class="font-mono font-semibold text-indigo-300">—</span></div>
           </div>
         </div>
+        <div class="cv-resize-handle" title="Redimensionar"></div>
       </div>
 
-      <div class="absolute top-3 right-3 z-10 flex flex-col gap-2">
-        <button id="btn-cam-iso" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-cube text-indigo-400"></i><span class="hidden sm:inline">3D Isométrica</span></button>
-        <button id="btn-cam-top" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-border-all text-emerald-400"></i><span class="hidden sm:inline">Topo (Heatmap)</span></button>
-        <button id="btn-cam-side" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-chart-bar text-amber-400"></i><span class="hidden sm:inline">Lateral (Profile)</span></button>
-        <button id="btn-help" class="px-3 py-2 bg-dark-900/90 hover:bg-dark-800 border border-slate-700/80 text-slate-300 rounded-xl shadow-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-circle-question text-slate-400"></i><span class="hidden sm:inline">Ajuda CSV</span></button>
-      </div>
-
-      <div class="absolute bottom-3 left-3 z-10 pointer-events-none flex flex-col gap-2">
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[11px] text-slate-300 flex flex-wrap items-center gap-3 shadow-lg">
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> X: <b id="legend-x">Hora do Dia</b></span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Y: <b id="legend-y">Faixa de Preço</b></span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Z: <b>Volume</b></span>
+      <div id="card-camera" data-card-id="camera" style="top:12px; right:12px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-1.5 flex flex-col gap-1.5">
+        <div class="cv-drag-handle flex items-center justify-between gap-2 px-1.5 py-0.5 text-[10px] text-slate-400 border-b border-slate-800/80">
+          <span class="flex items-center gap-1 font-semibold"><i class="fa-solid fa-grip-vertical text-slate-600"></i> Visão 3D</span>
+          <button type="button" class="cv-collapse-btn w-4 h-4 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[9px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
         </div>
-        <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 px-3 py-2 rounded-xl text-[10px] text-slate-400 flex items-center gap-2 shadow-lg">
-          <span>Baixo Vol</span>
-          <div class="w-24 h-2.5 rounded-full" style="background: linear-gradient(90deg, #334155 0%, #3b82f6 30%, #06b6d4 50%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
-          <span class="text-amber-400 font-semibold">POC (Pico)</span>
-          <span class="mx-2 text-slate-600">|</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#0088FF]"></span> Compra</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FF1E42]"></span> Venda</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#FFD700]" style="opacity:.45"></span> Rastro</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-[#00FF88]"></span> ABC</span>
+        <div class="cv-card-body flex flex-col gap-1.5">
+          <button id="btn-cam-iso" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-cube text-indigo-400"></i><span class="hidden sm:inline">3D Isométrica</span></button>
+          <button id="btn-cam-top" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-border-all text-emerald-400"></i><span class="hidden sm:inline">Topo (Heatmap)</span></button>
+          <button id="btn-cam-side" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-200 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-chart-bar text-amber-400"></i><span class="hidden sm:inline">Lateral (Profile)</span></button>
+          <button id="btn-help" class="px-2.5 py-1.5 bg-dark-950/80 hover:bg-dark-800 border border-slate-700/80 text-slate-300 rounded-lg flex items-center gap-2 text-xs font-medium transition"><i class="fa-solid fa-circle-question text-slate-400"></i><span class="hidden sm:inline">Ajuda CSV</span></button>
         </div>
       </div>
 
-      <div id="pip-wrap" class="absolute bottom-3 right-3 z-10 pointer-events-auto">
-        <div class="bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 shadow-xl">
-          <div class="flex items-center justify-between gap-2 mb-1">
-            <div class="text-[10px] text-slate-300 font-semibold flex items-center gap-1.5">
-              <i class="fa-solid fa-chart-line text-emerald-400"></i>
-              <span id="pip-title">WIN · M1</span>
-              <span id="pip-live-price" class="font-mono text-sky-300 font-bold">—</span>
-            </div>
+      <div id="card-legenda" data-card-id="legenda" style="bottom:12px; left:12px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl px-2.5 py-2 flex flex-col gap-1.5">
+        <div class="cv-drag-handle flex items-center justify-between gap-2 text-[10px] text-slate-400 border-b border-slate-800/80 pb-1">
+          <span class="flex items-center gap-1.5 font-semibold"><i class="fa-solid fa-grip-vertical text-slate-600"></i> Legenda &amp; Eixos</span>
+          <button type="button" class="cv-collapse-btn w-4 h-4 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[9px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
+        </div>
+        <div class="cv-card-body flex flex-col gap-1.5">
+          <div class="text-[11px] text-slate-300 flex flex-wrap items-center gap-3">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> X: <b id="legend-x">Hora do Dia</b></span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Y: <b id="legend-y">Faixa de Preço</b></span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Z: <b>Volume</b></span>
+          </div>
+          <div class="text-[10px] text-slate-400 flex flex-wrap items-center gap-2">
+            <span>Baixo Vol</span>
+            <div class="w-20 h-2 rounded-full" style="background: linear-gradient(90deg, #334155 0%, #3b82f6 30%, #06b6d4 50%, #fbbf24 70%, #f97316 85%, #ef4444 100%);"></div>
+            <span class="text-amber-400 font-semibold">POC (Pico)</span>
+            <span class="mx-1 text-slate-600">|</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#0088FF]"></span> Compra</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#FF1E42]"></span> Venda</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#FFD700]" style="opacity:.55"></span> Rastro</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#00FF88]"></span> ABC</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="pip-wrap" data-card-id="pip" data-resize="wh" style="bottom:12px; right:12px; width:376px;" class="cv-floating-card pointer-events-auto bg-dark-900/90 backdrop-blur-md border border-slate-800/90 rounded-xl p-2 flex flex-col">
+        <div class="cv-drag-handle flex items-center justify-between gap-2 mb-1 pb-1 border-b border-slate-800/70">
+          <div class="text-[10px] text-slate-300 font-semibold flex items-center gap-1.5 truncate">
+            <i class="fa-solid fa-grip-vertical text-slate-600 text-[10px]"></i>
+            <i class="fa-solid fa-chart-line text-emerald-400"></i>
+            <span id="pip-title">WIN · M1</span>
+            <span id="pip-live-price" class="font-mono text-sky-300 font-bold">—</span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
             <div id="pip-tf-bar" class="flex items-center gap-0.5 bg-dark-950/90 p-0.5 rounded-lg border border-slate-800">
               <button data-pip-tf="M1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white transition">M1</button>
               <button data-pip-tf="M5" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">M5</button>
@@ -175,9 +210,13 @@
               <button data-pip-tf="H1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">1H</button>
               <button data-pip-tf="D1" class="pip-tf-btn px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 hover:text-white transition">Diário</button>
             </div>
+            <button type="button" class="cv-collapse-btn w-5 h-5 rounded hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]" title="Minimizar / Expandir"><i class="fa-solid fa-minus"></i></button>
           </div>
-          <canvas id="pip" width="356" height="168"></canvas>
         </div>
+        <div class="cv-card-body flex-1 min-h-0 flex items-stretch">
+          <canvas id="pip" width="356" height="168" style="width:100%; height:100%;"></canvas>
+        </div>
+        <div class="cv-resize-handle" title="Redimensionar Mini-Gráfico"></div>
       </div>
 
       <div id="hover-tooltip" class="fixed z-40 pointer-events-none hidden bg-dark-900/95 backdrop-blur-md border border-indigo-500/40 rounded-xl p-3 shadow-2xl text-xs min-w-[200px]">
@@ -536,6 +575,7 @@
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+      if (typeof clampFloatingCards === 'function') clampFloatingCards();
     }
 
     function setCameraPreset(preset) {
@@ -2197,6 +2237,11 @@
     }
 
     function onMouseMove(event) {
+      if (event.target && event.target.closest && event.target.closest('.cv-floating-card')) {
+        tooltip.classList.add('hidden');
+        container.style.cursor = 'default';
+        return;
+      }
       const rect = container.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -2793,9 +2838,233 @@
 
     let frame = 0;
 
+    const HUD_LAYOUT_KEY = 'cv_hud_layout_v1';
+    const DEFAULT_CARD_STYLES = {
+      resumo: { top: '12px', left: '12px', right: 'auto', bottom: 'auto', width: '246px', height: '' },
+      fluxo: { top: '186px', left: '12px', right: 'auto', bottom: 'auto', width: '274px', height: '' },
+      camera: { top: '12px', left: 'auto', right: '12px', bottom: 'auto', width: '', height: '' },
+      legenda: { top: 'auto', left: '12px', right: 'auto', bottom: '12px', width: '', height: '' },
+      pip: { top: 'auto', left: 'auto', right: '12px', bottom: '12px', width: '376px', height: '' },
+    };
+    let hudTopZ = 20;
+
+    function syncPipCanvasSize() {
+      const cv = document.getElementById('pip');
+      const card = document.getElementById('pip-wrap');
+      if (!cv || !card || card.classList.contains('cv-card-collapsed')) return;
+      const body = cv.parentElement;
+      if (!body) return;
+      const w = Math.max(220, Math.round(body.clientWidth));
+      const h = card.style.height ? Math.max(100, Math.round(body.clientHeight)) : 168;
+      if (cv.width !== w || cv.height !== h) {
+        cv.width = w;
+        cv.height = h;
+        pipDirty = true;
+        renderPiP();
+        pipDirty = false;
+      }
+    }
+
+    function clampFloatingCards() {
+      const cw = container.clientWidth || window.innerWidth;
+      const ch = container.clientHeight || window.innerHeight;
+      document.querySelectorAll('.cv-floating-card').forEach((card) => {
+        if (card.style.left && card.style.left !== 'auto') {
+          const left = parseFloat(card.style.left);
+          const top = parseFloat(card.style.top);
+          if (isFinite(left) && isFinite(top)) {
+            const maxX = Math.max(0, cw - Math.min(card.offsetWidth || 200, 140));
+            const maxY = Math.max(0, ch - 40);
+            card.style.left = Math.max(0, Math.min(maxX, left)) + 'px';
+            card.style.top = Math.max(0, Math.min(maxY, top)) + 'px';
+          }
+        }
+      });
+    }
+
+    function saveHudLayout() {
+      try {
+        const data = {};
+        document.querySelectorAll('.cv-floating-card').forEach((card) => {
+          const id = card.dataset.cardId;
+          if (!id) return;
+          data[id] = {
+            left: card.style.left || '',
+            top: card.style.top || '',
+            right: card.style.right || '',
+            bottom: card.style.bottom || '',
+            width: card.style.width || '',
+            height: card.style.height || '',
+            collapsed: card.classList.contains('cv-card-collapsed'),
+          };
+        });
+        localStorage.setItem(HUD_LAYOUT_KEY, JSON.stringify(data));
+      } catch { /* ignore */ }
+    }
+
+    function setCardCollapsed(card, collapsed) {
+      card.classList.toggle('cv-card-collapsed', !!collapsed);
+      const icon = card.querySelector('.cv-collapse-btn i');
+      if (icon) icon.className = collapsed ? 'fa-solid fa-plus' : 'fa-solid fa-minus';
+    }
+
+    function loadHudLayout() {
+      try {
+        const raw = localStorage.getItem(HUD_LAYOUT_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return;
+        document.querySelectorAll('.cv-floating-card').forEach((card) => {
+          const cfg = data[card.dataset.cardId];
+          if (!cfg) return;
+          if (cfg.left && cfg.left !== 'auto') {
+            card.style.left = cfg.left;
+            card.style.top = cfg.top;
+            card.style.right = 'auto';
+            card.style.bottom = 'auto';
+          }
+          if (cfg.width) card.style.width = cfg.width;
+          if (cfg.height) card.style.height = cfg.height;
+          setCardCollapsed(card, !!cfg.collapsed);
+        });
+        clampFloatingCards();
+        syncPipCanvasSize();
+      } catch { /* ignore */ }
+    }
+
+    function resetHudLayout() {
+      try { localStorage.removeItem(HUD_LAYOUT_KEY); } catch { /* ignore */ }
+      document.querySelectorAll('.cv-floating-card').forEach((card) => {
+        const def = DEFAULT_CARD_STYLES[card.dataset.cardId];
+        if (!def) return;
+        card.style.top = def.top;
+        card.style.left = def.left;
+        card.style.right = def.right;
+        card.style.bottom = def.bottom;
+        card.style.width = def.width;
+        card.style.height = def.height;
+        card.style.zIndex = '15';
+        setCardCollapsed(card, false);
+      });
+      const cv = document.getElementById('pip');
+      if (cv) { cv.width = 356; cv.height = 168; }
+      pipDirty = true;
+      renderPiP();
+      pipDirty = false;
+      showToast('Posição e tamanho padrão dos cards restaurados.');
+    }
+
+    function initFloatingCards() {
+      const cards = document.querySelectorAll('.cv-floating-card');
+      cards.forEach((card) => {
+        const bringToFront = () => { hudTopZ += 1; card.style.zIndex = String(hudTopZ); };
+        card.addEventListener('pointerdown', (e) => {
+          bringToFront();
+          e.stopPropagation();
+        });
+        card.addEventListener('click', (e) => e.stopPropagation());
+        card.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+
+        const collapseBtn = card.querySelector('.cv-collapse-btn');
+        if (collapseBtn) {
+          collapseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const next = !card.classList.contains('cv-card-collapsed');
+            setCardCollapsed(card, next);
+            if (!next && card.id === 'pip-wrap') syncPipCanvasSize();
+            saveHudLayout();
+          });
+        }
+
+        const dragHandle = card.querySelector('.cv-drag-handle');
+        if (dragHandle) {
+          dragHandle.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 || e.target.closest('button, input, select, a')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            bringToFront();
+            const cRect = container.getBoundingClientRect();
+            const rect = card.getBoundingClientRect();
+            const startX = e.clientX, startY = e.clientY;
+            const origLeft = rect.left - cRect.left;
+            const origTop = rect.top - cRect.top;
+            card.style.left = `${origLeft}px`;
+            card.style.top = `${origTop}px`;
+            card.style.right = 'auto';
+            card.style.bottom = 'auto';
+            card.classList.add('cv-dragging');
+
+            const onMove = (ev) => {
+              const cw = container.clientWidth || window.innerWidth;
+              const ch = container.clientHeight || window.innerHeight;
+              const maxX = Math.max(0, cw - Math.min(card.offsetWidth || 160, 100));
+              const maxY = Math.max(0, ch - 36);
+              const nx = Math.max(0, Math.min(maxX, origLeft + (ev.clientX - startX)));
+              const ny = Math.max(0, Math.min(maxY, origTop + (ev.clientY - startY)));
+              card.style.left = `${nx}px`;
+              card.style.top = `${ny}px`;
+            };
+            const onUp = () => {
+              card.classList.remove('cv-dragging');
+              window.removeEventListener('pointermove', onMove);
+              window.removeEventListener('pointerup', onUp);
+              window.removeEventListener('pointercancel', onUp);
+              saveHudLayout();
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onUp);
+          });
+        }
+
+        const resizeHandle = card.querySelector('.cv-resize-handle');
+        if (resizeHandle) {
+          const mode = card.dataset.resize || 'w';
+          resizeHandle.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            bringToFront();
+            const cRect = container.getBoundingClientRect();
+            const rect = card.getBoundingClientRect();
+            const startX = e.clientX, startY = e.clientY;
+            const origW = rect.width, origH = rect.height;
+            if (!card.style.left || card.style.left === 'auto') {
+              card.style.left = `${rect.left - cRect.left}px`;
+              card.style.top = `${rect.top - cRect.top}px`;
+              card.style.right = 'auto';
+              card.style.bottom = 'auto';
+            }
+            const onMove = (ev) => {
+              const nw = Math.max(220, Math.min(mode === 'wh' ? 760 : 460, origW + (ev.clientX - startX)));
+              card.style.width = `${Math.round(nw)}px`;
+              if (mode === 'wh') {
+                const nh = Math.max(145, Math.min(540, origH + (ev.clientY - startY)));
+                card.style.height = `${Math.round(nh)}px`;
+                syncPipCanvasSize();
+              }
+            };
+            const onUp = () => {
+              window.removeEventListener('pointermove', onMove);
+              window.removeEventListener('pointerup', onUp);
+              window.removeEventListener('pointercancel', onUp);
+              saveHudLayout();
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onUp);
+          });
+        }
+      });
+      const resetBtn = document.getElementById('btn-reset-layout');
+      if (resetBtn) resetBtn.addEventListener('click', resetHudLayout);
+      loadHudLayout();
+    }
+
     initThree();
     rawMarketData = [];
     wireEvents();
+    initFloatingCards();
     updateVisualization();
     loadSampleData().then(() => { connectWS(); });
     animate();
