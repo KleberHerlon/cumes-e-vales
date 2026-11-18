@@ -65,10 +65,24 @@ HISTORY: list = []
 HISTORY_COUNT = 600
 MAGIC = 20261022
 DETECTOR = None
+WATCHLIST: list = []
+HISTORIES: dict = {}
 
 
 def log(msg: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+def parse_symbol_from_path(path) -> str | None:
+    if not path or "symbol=" not in path:
+        return None
+    try:
+        for part in path.split("?", 1)[1].split("&"):
+            if part.startswith("symbol="):
+                return part.split("=", 1)[1].strip().upper() or None
+    except Exception:  # noqa: BLE001
+        return None
+    return None
 
 
 def build_detector(config_path: Path):
@@ -195,6 +209,24 @@ def tick_msg(symbol: str) -> dict | None:
     return {"type": "tick", "symbol": symbol, "time": int(t.time), "bid": float(t.bid), "ask": float(t.ask)}
 
 
+def recent_tick_delta(symbol: str, from_dt) -> tuple[float, float]:
+    try:
+        ticks = mt5.copy_ticks_from(symbol, from_dt, 100000, mt5.COPY_TICKS_INFO)
+    except Exception:  # noqa: BLE001
+        return 0.0, 0.0
+    if ticks is None or len(ticks) == 0:
+        return 0.0, 0.0
+    buy = sell = 0.0
+    for t in ticks:
+        flags = int(t["flags"])
+        vol = float(t["volume"]) if t["volume"] else 1.0
+        if flags & mt5.TICK_FLAG_BUY:
+            buy += vol
+        elif flags & mt5.TICK_FLAG_SELL:
+            sell += vol
+    return buy, sell
+
+
 def open_positions_msgs(symbol: str, magic: int) -> list[dict]:
     out = []
     try:
@@ -310,11 +342,22 @@ async def poll_loop(symbol: str, timeframe: str, history: int, interval: float, 
     last_sent = None
     last_pattern_key = None
     sent_deals: set = set()
+    cum_buy = 0.0
+    cum_sell = 0.0
+    last_delta_dt = datetime.now()
     while True:
         try:
             tick = tick_msg(symbol)
             if tick:
                 await broadcast(tick)
+
+            now_dt = datetime.now()
+            b, s = recent_tick_delta(symbol, last_delta_dt)
+            last_delta_dt = now_dt
+            if b or s:
+                cum_buy += b
+                cum_sell += s
+                await broadcast({"type": "delta", "buy": round(cum_buy), "sell": round(cum_sell), "net": round(cum_buy - cum_sell)})
 
             rates = mt5.copy_rates_from_pos(symbol, tf, 0, 2)
             if rates is not None and len(rates) >= 2:

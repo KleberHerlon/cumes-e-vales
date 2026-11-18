@@ -74,7 +74,7 @@
         <div class="bg-dark-900/85 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl text-xs flex flex-col gap-1.5 min-w-[220px]">
           <div class="flex items-center justify-between border-b border-slate-800 pb-1">
             <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-chart-area text-indigo-400"></i> Resumo do Mapa</span>
-            <span id="badge-mode" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Topográfico</span>
+            <span id="badge-mode" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">Atlas Liquidez</span>
           </div>
           <div class="flex justify-between"><span class="text-slate-400">Registros:</span><span id="stat-points" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Amplitude de Preço:</span><span id="stat-price-range" class="font-mono font-semibold text-slate-200">-</span></div>
@@ -88,10 +88,12 @@
           <div class="flex items-center justify-between border-b border-slate-800 pb-1">
             <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water text-amber-400"></i> Fluxo &amp; Absorção</span>
           </div>
-          <div class="flex justify-between"><span class="text-slate-400">Delta (Compra-Venda):</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Delta (tick real):</span><span id="an-delta-real" class="font-mono font-semibold text-slate-500">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Delta (proxy OHLC):</span><span id="an-delta" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Delta na POC:</span><span id="an-poc-delta" class="font-mono font-semibold text-slate-200">0</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Absorção da POC:</span><span id="an-absorption" class="font-mono font-semibold text-emerald-400">50%</span></div>
           <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="an-abs-bar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500" style="width:50%"></div></div>
+          <div class="flex justify-between"><span class="text-slate-400">Preço vs POC:</span><span id="an-poc-dist" class="font-mono font-semibold text-slate-200">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">VWSD (valor):</span><span id="an-vwsd" class="font-mono font-semibold text-slate-200">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Assimetria (Skew):</span><span id="an-skew" class="font-mono font-semibold text-slate-200">-</span></div>
           <div class="flex justify-between"><span class="text-slate-400">Z-Score máx (anomalia):</span><span id="an-zscore" class="font-mono font-semibold text-rose-400">-</span></div>
@@ -193,8 +195,8 @@
           <summary><span class="flex items-center gap-1.5"><i class="fa-solid fa-mountain text-indigo-400"></i> Modelo &amp; Malha</span><i class="fa-solid fa-chevron-right cv-chev text-[9px]"></i></summary>
           <div class="cv-acc-body">
             <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
-              <button id="mode-topo" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-mountain"></i> Topográfico</button>
-              <button id="mode-trail" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-timeline"></i> Trilha Linear</button>
+              <button id="mode-topo" class="py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex flex-col items-center justify-center gap-0.5 shadow"><i class="fa-solid fa-mountain"></i> Atlas Liquidez</button>
+              <button id="mode-trail" class="py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex flex-col items-center justify-center gap-0.5"><i class="fa-solid fa-timeline"></i> Execução Ao Vivo</button>
             </div>
             <div id="topo-style-group" class="space-y-1.5">
               <div class="grid grid-cols-2 gap-1.5 bg-dark-950 p-1 rounded-xl border border-slate-800">
@@ -386,6 +388,7 @@
     let trades = [];
     let ws = null;
     let lastTick = null;
+    let liveDelta = { buy: 0, sell: 0, net: 0 };
     let liveFeed = null;
 
     let scale = { minPrice: 0, maxPrice: 1, minMin: SESSION_START, maxMin: SESSION_END, priceRange: 1, minRange: SESSION_END - SESSION_START };
@@ -697,7 +700,7 @@
       for (let i = 0; i < xLabels.length; i += xStep) { const s = makeTextSprite(xLabels[i], '#f43f5e'); s.position.set(((i / (xLabels.length - 1 || 1)) - 0.5) * PLANE_WIDTH, 0.5, PLANE_DEPTH / 2 + 3.5); sceneGroup.add(s); }
       const yStep = Math.max(1, Math.floor(yLabels.length / 6));
       for (let j = 0; j < yLabels.length; j += yStep) { const s = makeTextSprite(yLabels[j], '#34d399'); s.position.set(PLANE_WIDTH / 2 + 4.8, 0.5, (0.5 - (j / (yLabels.length - 1 || 1))) * PLANE_DEPTH); sceneGroup.add(s); }
-      const symLbl = makeTextSprite(`${symbol} · ${viewMode === 'trail' ? 'Trilha Linear' : 'Topográfico'}`, '#f8fafc', 13, 2.8);
+      const symLbl = makeTextSprite(`${symbol} · ${viewMode === 'trail' ? 'Execução Ao Vivo' : 'Atlas de Liquidez'}`, '#f8fafc', 13, 2.8);
       symLbl.position.set(0, tiltMax() + MAX_HEIGHT * zScaleFactor + 6, -PLANE_DEPTH / 2 - 2.5);
       sceneGroup.add(symLbl);
     }
@@ -1291,7 +1294,10 @@
       let maxZ = 0;
       for (const b of activeData) { const z = stdVol ? (b.volume - meanVol) / stdVol : 0; if (z > maxZ) maxZ = z; }
 
-      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ };
+      const lastPrice = activeData[activeData.length - 1].close;
+      const pocDistance = pocPrice != null ? lastPrice - pocPrice : 0;
+
+      analytics = { pocPrice, delta, pocDelta, absorption, vwsd, skew, maxZ, lastPrice, pocDistance };
     }
 
     function renderPiP() {
@@ -1407,6 +1413,9 @@
       set('an-skew', `${an.skew >= 0 ? '+' : ''}${an.skew.toFixed(2)}`);
       set('an-zscore', `${an.maxZ.toFixed(1)}σ`);
       set('an-liquidity', `${Math.round(liquidity * 100)}%`);
+      set('an-poc-dist', an.pocPrice == null ? '—' : `${an.pocDistance >= 0 ? '+' : ''}${Math.round(an.pocDistance)} pts ${an.pocDistance >= 0 ? '(acima)' : '(abaixo)'}`);
+      const pd = document.getElementById('an-poc-dist');
+      if (pd) pd.className = 'font-mono font-semibold ' + (an.pocDistance >= 0 ? 'text-emerald-400' : 'text-rose-400');
       const ab = document.getElementById('an-abs-bar');
       if (ab) ab.style.width = `${Math.round(an.absorption * 100)}%`;
       const pc = document.getElementById('an-poc-delta');
@@ -1543,6 +1552,14 @@
         const price = num(msg.bid ?? msg.ask ?? msg.price);
         if (isFinite(price)) lastTick = { time, price };
         return;
+      } else if (type === 'delta') {
+        liveDelta = { buy: num(msg.buy, 0), sell: num(msg.sell, 0), net: num(msg.net, num(msg.buy, 0) - num(msg.sell, 0)) };
+        const rd = document.getElementById('an-delta-real');
+        if (rd) {
+          rd.textContent = `${liveDelta.net >= 0 ? '+' : ''}${Math.round(liveDelta.net).toLocaleString('pt-BR')}${liveDelta.net >= 0 ? ' ▲' : ' ▼'}`;
+          rd.className = 'font-mono font-semibold ' + (liveDelta.net >= 0 ? 'text-emerald-400' : 'text-rose-400');
+        }
+        return;
       } else if (type === 'pivot' || type === 'abc') {
         const aT = ts(msg.a_time ?? msg.a?.time), bT = ts(msg.b_time ?? msg.b?.time), cT = ts(msg.c_time ?? msg.c?.time);
         if ([aT, bT, cT].some((x) => x == null)) return;
@@ -1588,8 +1605,8 @@
     function wireEvents() {
       document.getElementById('asset-symbol').addEventListener('change', (e) => { symbol = (e.target.value || 'WIN').trim().toUpperCase(); updateVisualization(); });
       document.getElementById('n-pocs').addEventListener('change', (e) => { nPocs = Math.max(1, Math.min(8, Number(e.target.value) || 3)); updateVisualization(); });
-      document.getElementById('mode-topo').addEventListener('click', () => { viewMode = 'topographic'; styleBtn('mode-topo', 'mode-trail'); document.getElementById('topo-style-group').classList.remove('hidden'); document.getElementById('grid-res-group').classList.remove('hidden'); document.getElementById('badge-mode').textContent = 'Topográfico'; updateVisualization(); });
-      document.getElementById('mode-trail').addEventListener('click', () => { viewMode = 'trail'; styleBtn('mode-trail', 'mode-topo'); document.getElementById('topo-style-group').classList.add('hidden'); document.getElementById('grid-res-group').classList.add('hidden'); document.getElementById('badge-mode').textContent = 'Trilha Linear'; updateVisualization(); });
+      document.getElementById('mode-topo').addEventListener('click', () => { viewMode = 'topographic'; styleBtn('mode-topo', 'mode-trail'); document.getElementById('topo-style-group').classList.remove('hidden'); document.getElementById('grid-res-group').classList.remove('hidden'); document.getElementById('badge-mode').textContent = 'Atlas Liquidez'; updateVisualization(); });
+      document.getElementById('mode-trail').addEventListener('click', () => { viewMode = 'trail'; styleBtn('mode-trail', 'mode-topo'); document.getElementById('topo-style-group').classList.add('hidden'); document.getElementById('grid-res-group').classList.add('hidden'); document.getElementById('badge-mode').textContent = 'Execução Ao Vivo'; updateVisualization(); });
       document.getElementById('submode-mesh').addEventListener('click', () => { topoSubMode = 'mesh'; styleBtn('submode-mesh', 'submode-bars'); updateVisualization(); });
       document.getElementById('submode-bars').addEventListener('click', () => { topoSubMode = 'bars'; styleBtn('submode-bars', 'submode-mesh'); updateVisualization(); });
       document.getElementById('slider-price-bins').addEventListener('input', (e) => { priceBinsCount = parseInt(e.target.value, 10); document.getElementById('val-price-bins').textContent = `${priceBinsCount} faixas`; updateVisualization(); });
@@ -1645,7 +1662,7 @@
       const a = document.getElementById(active), b = document.getElementById(inactive);
       a.className = a.className.replace('text-slate-400', '').replace('text-indigo-300', '');
       if (active.startsWith('submode')) { a.className = 'py-1.5 px-2 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-500/30 font-semibold text-[11px] transition flex items-center justify-center gap-1.5'; b.className = 'py-1.5 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5'; }
-      else { a.className = 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex items-center justify-center gap-1.5 shadow'; b.className = 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex items-center justify-center gap-1.5'; }
+      else { a.className = 'py-2 px-2 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] transition flex flex-col items-center justify-center gap-0.5 shadow'; b.className = 'py-2 px-2 rounded-lg text-slate-400 hover:text-white font-medium text-[11px] transition flex flex-col items-center justify-center gap-0.5'; }
     }
 
     function stylePreset(active) {
